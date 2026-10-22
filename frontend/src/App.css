@@ -1,0 +1,490 @@
+/* ========================================
+   App Layout
+   ======================================== */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app__header {
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-bottom: 1px solid rgba(74, 144, 217, 0.15);
+  text-align: center;
+}
+
+.app__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  letter-spacing: -0.02em;
+}
+
+.app__title-icon {
+  margin-right: 0.5rem;
+}
+
+.app__subtitle {
+  font-size: 0.85rem;
+  color: #8899aa;
+  margin-top: 0.2rem;
+}
+
+.app__main {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.app__content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.app__video-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ========================================
+   WebcamFeed
+   ======================================== */
+
+.webcam-feed {
+  width: 100%;
+}
+
+.webcam-feed__video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0a0a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(74, 144, 217, 0.2);
+  box-shadow:
+    0 0 30px rgba(74, 144, 217, 0.06),
+    0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.webcam-feed__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+}
+
+.webcam-feed__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* Placeholder */
+.webcam-feed__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #0f0f23 100%);
+}
+
+.webcam-feed__placeholder-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.webcam-feed__placeholder-text {
+  font-size: 1.1rem;
+  color: #c0c0d0;
+}
+
+.webcam-feed__placeholder-subtext {
+  font-size: 0.8rem;
+  color: #6a6a8a;
+  margin-top: 0.4rem;
+}
+
+/* Error */
+.webcam-feed__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 15, 35, 0.95);
+}
+
+.webcam-feed__error-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.webcam-feed__error-text {
+  font-size: 0.95rem;
+  color: #e74c3c;
+  text-align: center;
+  max-width: 80%;
+  line-height: 1.5;
+}
+
+/* ========================================
+   Status Bar
+   ======================================== */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.6rem 1rem;
+  background: #1a1a2e;
+  border: 1px solid rgba(74, 144, 217, 0.12);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  font-size: 0.8rem;
+}
+
+.status-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+}
+
+.status-bar__item--wide {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-bar__item--wide .status-bar__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-bar__label {
+  color: #6a7a8a;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.status-bar__value {
+  color: #c0d0e0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-bar__value--ok {
+  color: #27AE60;
+}
+
+.status-bar__value--idle {
+  color: #8899aa;
+}
+
+.status-bar__divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(74, 144, 217, 0.15);
+  flex-shrink: 0;
+}
+
+/* ========================================
+   Control Panel
+   ======================================== */
+
+.control-panel {
+  background: #1a1a2e;
+  border: 1px solid rgba(74, 144, 217, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.control-panel__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(74, 144, 217, 0.1);
+  background: linear-gradient(135deg, rgba(74, 144, 217, 0.05) 0%, transparent 100%);
+}
+
+.control-panel__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.control-panel__section {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(74, 144, 217, 0.06);
+}
+
+.control-panel__section:last-child {
+  border-bottom: none;
+}
+
+.control-panel__section--info {
+  background: rgba(74, 144, 217, 0.03);
+}
+
+/* Connection Status */
+.control-panel__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-panel__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.control-panel__dot--connected {
+  background: #27AE60;
+  box-shadow: 0 0 8px rgba(39, 174, 96, 0.5);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.control-panel__dot--disconnected {
+  background: #e74c3c;
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 4px rgba(39, 174, 96, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(39, 174, 96, 0.7); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 4px rgba(231, 76, 60, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.7); }
+}
+
+.control-panel__status-text {
+  font-size: 0.85rem;
+  color: #b0b8c0;
+}
+
+/* Start/Stop Button */
+.control-panel__btn {
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.control-panel__btn--start {
+  background: linear-gradient(135deg, #27AE60 0%, #219a52 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(39, 174, 96, 0.3);
+}
+
+.control-panel__btn--start:hover {
+  background: linear-gradient(135deg, #2ecc71 0%, #27AE60 100%);
+  box-shadow: 0 4px 18px rgba(39, 174, 96, 0.4);
+  transform: translateY(-1px);
+}
+
+.control-panel__btn--start:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(39, 174, 96, 0.3);
+}
+
+.control-panel__btn--stop {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(231, 76, 60, 0.3);
+}
+
+.control-panel__btn--stop:hover {
+  background: linear-gradient(135deg, #ff5e4f 0%, #e74c3c 100%);
+  box-shadow: 0 4px 18px rgba(231, 76, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+.control-panel__btn--stop:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(231, 76, 60, 0.3);
+}
+
+.control-panel__btn-icon {
+  font-size: 1rem;
+}
+
+/* FPS Metric */
+.control-panel__metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-panel__metric-label {
+  font-size: 0.85rem;
+  color: #8899aa;
+}
+
+.control-panel__metric-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #4A90D9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section Title */
+.control-panel__section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6a7a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+
+/* Toggle Switches */
+.control-panel__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.4rem 0;
+  user-select: none;
+}
+
+.control-panel__toggle + .control-panel__toggle {
+  margin-top: 0.3rem;
+}
+
+.control-panel__toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.control-panel__toggle-slider {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #2a2a3e;
+  border-radius: 11px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  border: 1px solid rgba(74, 144, 217, 0.15);
+}
+
+.control-panel__toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #6a7a8a;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.control-panel__toggle input:checked + .control-panel__toggle-slider {
+  background: rgba(74, 144, 217, 0.25);
+  border-color: rgba(74, 144, 217, 0.4);
+}
+
+.control-panel__toggle input:checked + .control-panel__toggle-slider::after {
+  transform: translateX(18px);
+  background: #4A90D9;
+}
+
+.control-panel__toggle-label {
+  font-size: 0.85rem;
+  color: #c0c8d0;
+}
+
+/* Info Text */
+.control-panel__info-text {
+  font-size: 0.8rem;
+  color: #6a7a8a;
+  line-height: 1.5;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 900px) {
+  .app__content {
+    grid-template-columns: 1fr;
+  }
+
+  .app__main {
+    padding: 1rem;
+  }
+
+  .app__header {
+    padding: 1rem 1.25rem;
+  }
+
+  .app__title {
+    font-size: 1.2rem;
+  }
+
+  .status-bar {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .status-bar__divider {
+    display: none;
+  }
+
+  .status-bar__item {
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app__main {
+    padding: 0.75rem;
+  }
+
+  .app__content {
+    gap: 1rem;
+  }
+
+  .webcam-feed__video-container {
+    border-radius: 8px;
+  }
+
+  .status-bar {
+    border-radius: 0 0 8px 8px;
+    font-size: 0.7rem;
+  }
+
+  .control-panel {
+    border-radius: 8px;
+  }
+}
