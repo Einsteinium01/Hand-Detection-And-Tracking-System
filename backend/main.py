@@ -9,6 +9,7 @@ import base64
 import json
 import logging
 import time
+from contextlib import asynccontextmanager
 
 import cv2
 import numpy as np
@@ -29,25 +30,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # App & detector
 # ---------------------------------------------------------------------------
-app = FastAPI(
-    title="Hand Detection & Tracking API",
-    version="1.0.0",
-    description="Real-time hand landmark detection via WebSocket.",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 detector: HandDetector | None = None
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Initialise the HandDetector once when the server starts."""
     global detector  # noqa: PLW0603
     try:
@@ -60,6 +47,23 @@ async def startup_event() -> None:
         )
     except Exception:
         logger.exception("Failed to initialise HandDetector")
+    yield
+
+
+app = FastAPI(
+    title="Hand Detection & Tracking API",
+    version="1.0.0",
+    description="Real-time hand landmark detection via WebSocket.",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ---------------------------------------------------------------------------

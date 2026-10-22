@@ -4,6 +4,7 @@ import os
 import logging
 from dataclasses import dataclass
 
+import cv2
 import numpy as np
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
@@ -121,7 +122,7 @@ class HandDetector:
             return {"hands": [], "num_hands": 0}
 
         try:
-            rgb_frame = frame[:, :, ::-1]  # BGR → RGB (view, no copy)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR → RGB (contiguous)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
             result = self._detector.detect(mp_image)
         except Exception:

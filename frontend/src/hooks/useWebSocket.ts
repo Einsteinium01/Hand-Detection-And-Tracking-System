@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { WebSocketMessage } from '../types/hand';
 
 const WS_URL = 'ws://localhost:8000/ws/detect';
-const MAX_RETRIES = 5;
+const MAX_RETRIES = Infinity;
 const BASE_DELAY_MS = 1000;
+const MAX_DELAY_MS = 10000;
 
 interface UseWebSocketReturn {
   sendFrame: (base64: string) => void;
@@ -65,7 +66,7 @@ export function useWebSocket(): UseWebSocketReturn {
 
         // Attempt reconnection with exponential backoff
         if (retriesRef.current < MAX_RETRIES) {
-          const delay = BASE_DELAY_MS * Math.pow(2, retriesRef.current);
+          const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retriesRef.current), MAX_DELAY_MS);
           retriesRef.current += 1;
           reconnectTimerRef.current = setTimeout(() => {
             connect();
