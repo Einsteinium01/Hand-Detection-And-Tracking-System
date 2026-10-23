@@ -177,10 +177,16 @@ export function drawBoundingBox(
   ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 4);
   ctx.fill();
 
-  // Draw label text
+  // Draw label text (un-mirror so text reads correctly on the flipped canvas)
+  ctx.save();
+  const textCenterX = labelX + labelWidth / 2;
+  ctx.translate(textCenterX, 0);
+  ctx.scale(-1, 1);
+  ctx.translate(-textCenterX, 0);
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, labelX + padding, labelY + labelHeight / 2);
+  ctx.restore();
 
   ctx.restore();
 }
