@@ -1,156 +1,292 @@
 # 🖐️ Hand Detection & Tracking System
 
-Real-time hand detection and tracking system that processes webcam video and displays results in a web interface. Built with **MediaPipe Task Visions**, **FastAPI**, and **React + TypeScript**.
+A real-time hand detection, tracking, and gesture recognition system that processes live webcam video and displays interactive overlays in a modern web interface. Built for the **Dheera AI Internship Assessment**.
 
-![Tech Stack](https://img.shields.io/badge/MediaPipe-Tasks_Vision-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)
+![Tech Stack](https://img.shields.io/badge/MediaPipe-Tasks_Vision_API-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue) ![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-orange) ![License](https://img.shields.io/badge/Status-Complete-brightgreen)
+
+---
+
+## 📋 Table of Contents
+- [Features](#-features)
+  - [Core Requirements (MVP)](#core-requirements-mvp)
+  - [Bonus Features](#bonus-features)
+- [Architecture](#-architecture)
+- [How to Run the Application (Setup Instructions)](#-how-to-run-the-application-setup-instructions)
+  - [Prerequisites](#prerequisites)
+  - [1. Clone Repository](#1-clone-repository)
+  - [2. Backend Setup](#2-backend-setup)
+  - [3. Frontend Setup](#3-frontend-setup)
+  - [4. Running Automated Tests](#4-running-automated-tests)
+- [Dependencies & Requirements](#-dependencies--requirements)
+- [Which AI Tools Were Used & How](#-which-ai-tools-were-used--how)
+- [Challenges Faced & Solutions](#-challenges-faced--solutions)
+- [Project Structure](#-project-structure)
+
+---
 
 ## ✨ Features
 
-### Core (MVP)
-- ✅ Real-time hand detection using MediaPipe HandLandmarker (Task Vision API)
-- ✅ 21-point hand landmark skeleton visualization
-- ✅ Bounding boxes with handedness labels (Left/Right) and confidence scores
-- ✅ Live webcam feed with detection overlays in the browser
-- ✅ Start/Stop controls with connection status indicators
-- ✅ Multi-hand support (up to 2 hands simultaneously)
-- ✅ Responsive dark-themed UI
-- ✅ Real-time FPS and processing time display
+### Core Requirements (MVP)
+- ✅ **Real-Time Hand Detection**: Utilizes MediaPipe HandLandmarker (Task Vision API) to detect hands at ~15–30 FPS.
+- ✅ **21-Point Landmark Skeleton**: Precise rendering of all 21 3D joint landmarks and bone interconnects.
+- ✅ **Bounding Boxes & Handedness**: Padded bounding rectangles displaying handedness (`Left` / `Right`) and model confidence score.
+- ✅ **Live Webcam Stream with Canvas Overlays**: Smooth web browser video playback with high-DPI canvas overlay synchronization.
+- ✅ **Start/Stop Controls**: Responsive UI to toggle video capture, WebSocket connection, and detection processing.
+- ✅ **Real-Time Metrics**: Live client & server FPS counter, end-to-end processing latency display, and connection status.
 
 ### Bonus Features
-- ✅ **Gesture Recognition**: 8 gestures (👍 Thumbs Up, 👎 Thumbs Down, ✌ Peace, 🖐 Open Palm, ✊ Fist, ☝ Pointing Up, 🤟 Rock, 👌 OK) with rotation invariance
-- ✅ **Hand Tracking with Persistent IDs**: Assigns consistent IDs across frames (e.g. `Hand #1`, `Hand #2`) with predictive centroid tracking and occlusion handling
-- ✅ **Session Video Recording & Download**: High-definition video recording capturing live webcam feed + all real-time overlays (landmarks, bounding boxes, hand IDs, gestures) with instant download
-- ✅ **Visualization Toggles**: Real-time switches for skeleton landmarks and bounding boxes
-- 🔲 Heatmap visualization
+- ✅ **Gesture Recognition (8 Gestures)**: Accurately classifies 8 distinct gestures using rotation-invariant joint kinematics:
+  - 👍 **Thumbs Up**
+  - 👎 **Thumbs Down**
+  - ✌️ **Peace**
+  - 🖐️ **Open Palm**
+  - ✊ **Fist**
+  - ☝️ **Pointing Up**
+  - 🤟 **Rock**
+  - 👌 **OK**
+- ✅ **Hand Tracking with Persistent IDs**: Assigns and maintains unique IDs across frames (`Hand #1`, `Hand #2`) using predictive centroid tracking, velocity smoothing, and cost-matrix matching.
+- ✅ **Occlusion & Dropout Tolerance**: Handles brief dropouts (up to 8 frames / ~0.5s) without losing or swapping hand IDs.
+- ✅ **Multi-Hand Support**: Simultaneously tracks and classifies gestures independently for multiple hands.
+- ✅ **Session Video Recording & Download**: Built-in recorder that captures the synchronized composite video (mirrored webcam feed + skeleton landmarks + bounding boxes + Hand IDs + gesture pills) and exports it as `.webm` / `.mp4`.
+- ✅ **Visualization Toggles**: Instant runtime switches to toggle the skeleton mesh and bounding boxes independently.
+
+---
 
 ## 🏗️ Architecture
 
 ```
-Browser (React)                    Server (FastAPI)
-┌──────────────┐    WebSocket     ┌──────────────┐
-│  getUserMedia │ ──── frame ───▶ │  Decode JPEG  │
-│  <video>     │                  │  MediaPipe    │
-│  <canvas>    │ ◀── JSON ────── │  HandLandmark │
-│  Draw overlay│                  │  Detection    │
-└──────────────┘                  └──────────────┘
+┌────────────────────────────────────────────────────────┐
+│                   Browser (React 19)                   │
+│                                                        │
+│   Webcam Feed ──▶ Canvas Frame Capture (~15 FPS)       │
+│                            │ (Base64 JPEG)             │
+│                            ▼                           │
+│                     WebSocket Client                   │
+└────────────────────────────┬───────────────────────────┘
+                             │ ws://localhost:8000/ws/detect
+┌────────────────────────────▼───────────────────────────┐
+│                   Server (FastAPI)                     │
+│                                                        │
+│   Base64 Decoder ──▶ MediaPipe Tasks Vision API        │
+│                            │ (21 Landmarks + BBox)     │
+│                            ▼                           │
+│                  HandTracker (Persistent IDs)          │
+│                            ▼                           │
+│               Gesture Recognizer (8 Gestures)          │
+│                            │                           │
+│                            ▼                           │
+│             JSON Response (Landmarks + ID + Gesture)   │
+└────────────────────────────┬───────────────────────────┘
+                             │
+┌────────────────────────────▼───────────────────────────┐
+│               Browser Overlay Renderer                 │
+│                                                        │
+│  Canvas 2D Context:                                    │
+│  - Mirrored skeleton connections & landmark nodes      │
+│  - Un-mirrored bounding boxes, Hand #IDs & confidence  │
+│  - Gesture badge pills & live status updates           │
+│  - Composite MediaRecorder (Webcam + Overlays)         │
+└────────────────────────────────────────────────────────┘
 ```
 
-- **Frontend** captures webcam, sends frames as base64 JPEG via WebSocket (~15 FPS)
-- **Backend** decodes frames, runs MediaPipe detection, returns landmark JSON
-- **Frontend** renders landmark overlays on a `<canvas>` on top of the `<video>` element
+---
 
-## 🚀 Setup & Run
+## 🚀 How to Run the Application (Setup Instructions)
 
 ### Prerequisites
-- **Python 3.10+** (tested with 3.12)
-- **Node.js 18+** (tested with 20+)
-- **Webcam** (built-in or external)
+- **Python**: 3.10 or newer (tested on Python 3.12)
+- **Node.js**: 18.0 or newer (tested on Node.js 20+)
+- **npm**: 9.0 or newer
+- **Webcam**: Built-in or external USB camera
 
-### 1. Clone the Repository
+---
+
+### 1. Clone Repository
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/Hand-Detection-And-Tracking-System.git
+git clone https://github.com/Einsteinium01/Hand-Detection-And-Tracking-System.git
 cd Hand-Detection-And-Tracking-System
 ```
 
+---
+
 ### 2. Backend Setup
-```bash
-cd backend
 
-# Create virtual environment (recommended)
-python -m venv venv
-venv\Scripts\activate    # Windows
-# source venv/bin/activate  # macOS/Linux
+1. Open a terminal in the project directory and navigate to `backend/`:
+   ```bash
+   cd backend
+   ```
 
-# Install dependencies
-pip install -r requirements.txt
+2. (Optional but recommended) Create and activate a Python virtual environment:
+   - **Windows (PowerShell)**:
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\Activate.ps1
+     ```
+   - **macOS / Linux**:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
 
-# Download MediaPipe model (~12 MB)
-python download_model.py
+3. Install required Python packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# Start the server
-python main.py
-```
-The backend will start on `http://localhost:8000`.
+4. Download the MediaPipe HandLandmarker task model:
+   ```bash
+   python download_model.py
+   ```
+   *(Downloads `hand_landmarker.task` (~7.5 MB) into `backend/models/`)*
+
+5. Start the FastAPI backend server:
+   ```bash
+   python main.py
+   ```
+   The backend starts at `http://localhost:8000`. You can verify health at `http://localhost:8000/health`.
+
+---
 
 ### 3. Frontend Setup
-```bash
-cd frontend
 
-# Install dependencies
-npm install
+1. Open a **new terminal** and navigate to `frontend/`:
+   ```bash
+   cd frontend
+   ```
 
-# Start dev server
-npm run dev
-```
-The frontend will start on `http://localhost:5173`.
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
 
-### 4. Use the App
-1. Open `http://localhost:5173` in your browser
-2. Click **Start Detection**
-3. Allow camera access when prompted
-4. Hold your hand(s) in front of the camera
-5. See real-time landmarks and bounding boxes!
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   The frontend starts at `http://localhost:5173`.
 
-## 📦 Dependencies
+4. Open `http://localhost:5173` in Google Chrome or any modern browser.
+5. Click **Start Detection** and allow camera access.
 
-### Backend
+---
+
+### 4. Running Automated Tests
+
+To ensure everything is working correctly, run the test suites:
+
+- **Backend Unit Tests (Tracking & Algorithms)**:
+  ```bash
+  python -m pytest backend/ -v
+  ```
+  *(Verifies single-hand tracking, multi-hand persistent IDs, occlusion grace periods, track expiration, and resets)*
+
+- **Frontend Build & Type Check**:
+  ```bash
+  cd frontend
+  npm run build
+  ```
+  *(Runs `tsc -b` and compiles production assets with Vite)*
+
+---
+
+## 📦 Dependencies & Requirements
+
+### Backend (`requirements.txt`)
 | Package | Version | Purpose |
-|---------|---------|---------|
-| fastapi | 0.115.0 | Web framework with WebSocket support |
-| uvicorn | 0.30.6 | ASGI server |
-| mediapipe | 0.10.18 | Hand landmark detection (Task Vision API) |
-| opencv-python-headless | 4.10.0 | Image decoding |
-| numpy | ≥1.26.0 | Array operations |
+|---|---|---|
+| `fastapi` | `^0.115.0` | High-performance asynchronous web framework |
+| `uvicorn` | `^0.30.6` | Production ASGI web server with WebSocket support |
+| `mediapipe` | `0.10.18` | Google's HandLandmarker Task Vision API |
+| `opencv-python-headless`| `^4.10.0` | Server-side image decoding and RGB color matrix conversion |
+| `numpy` | `>=1.26.0` | Vector and matrix calculations for landmarks |
+| `pytest` | `^9.1.0` | Automated test runner for tracker and recognition algorithms |
 
-### Frontend
+### Frontend (`package.json`)
 | Package | Version | Purpose |
-|---------|---------|---------|
-| react | 19.1.0 | UI framework |
-| react-dom | 19.1.0 | DOM rendering |
-| vite | 6.3.0 | Build tool & dev server |
-| typescript | 5.7.0 | Type safety |
+|---|---|---|
+| `react` | `^19.1.0` | Modern React 19 UI component library |
+| `react-dom` | `^19.1.0` | React DOM renderer |
+| `typescript` | `~5.7.2` | Static type checking and interface contracts |
+| `vite` | `^6.2.0` | Fast modern frontend bundler and dev server |
 
-## 🤖 AI Tools Used
+---
 
-This project was built with the help of **Google Antigravity (AGY)** — an AI coding assistant:
+## 🤖 Which AI Tools Were Used & How
 
-- **Architecture design**: Used AI to plan the WebSocket-based architecture, choosing between sending processed frames vs. JSON landmarks (chose JSON for efficiency and flexibility)
-- **Boilerplate code**: AI generated the FastAPI WebSocket handler, React hooks (`useWebSocket`, `useWebcam`), and canvas drawing utilities
-- **MediaPipe integration**: AI provided the correct Task Vision API usage (not the legacy Solutions API), including proper model initialization and detection calls
-- **Debugging**: AI helped debug canvas mirroring (matching video `scaleX(-1)` with canvas transforms) and WebSocket reconnection logic
-- **Code review**: All AI-generated code was reviewed, validated, and tested for correctness
+Throughout this project, **Google Antigravity (AGY)** was leveraged as the primary AI coding assistant:
 
-## 💡 Challenges Faced
+1. **Architecture & Pipeline Design**:
+   - Consulted AI to evaluate design trade-offs between server-side image processing vs. browser-side models vs. WebRTC.
+   - Decided on WebSocket JSON landmark streaming (~15 FPS send rate with decoupled 60 FPS requestAnimationFrame rendering) to optimize bandwidth and maintain sub-30ms round-trip latency.
+2. **MediaPipe Task Vision Migration**:
+   - Used AI to correctly configure the modern **MediaPipe Task Vision API** (`mediapipe.tasks.python.vision.HandLandmarker`), avoiding deprecated legacy `mp.solutions.hands` methods.
+3. **Multi-Object Hand Tracking Design**:
+   - Generated the mathematical framework for persistent hand tracking ([`hand_tracker.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/hand_tracker.py)), incorporating exponential moving-average velocity prediction and cost matrix matching.
+4. **Diagnostic Scripting & Automated Test Suites**:
+   - Created isolated diagnostic scripts and unit tests ([`test_hand_tracker.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/test_hand_tracker.py)) to simulate hand occlusions, motion transitions, and gesture edge cases.
+5. **Code Review & Validation**:
+   - Every AI-suggested implementation was manually reviewed, verified with automated test suites (`pytest`, `tsc`), and tested against real-world webcam video feeds.
 
-1. **Canvas mirroring**: The video feed is mirrored (`scaleX(-1)`) for a natural selfie view, so the canvas overlay must apply matching transforms when drawing landmarks
-2. **Frame rate balancing**: Sending every frame at 30fps to the backend would overload the WebSocket — settled on ~15fps for sending with requestAnimationFrame for smooth rendering
-3. **MediaPipe API versions**: MediaPipe has multiple APIs (legacy Solutions vs. new Tasks API) — ensured usage of the modern Task Vision API as specified
+---
+
+## 💡 Challenges Faced & Solutions
+
+### 1. Canvas Mirroring vs. Text Inversion
+- **Issue**: The webcam feed was mirrored (`transform: scaleX(-1)`) so the user feels like they are looking in a mirror. However, when drawing labels (handedness, confidence score, Hand ID, gesture text), the canvas mirror caused text to appear backwards.
+- **Solution**: Implemented localized inverse coordinate transformations in [`drawLandmarks.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/utils/drawLandmarks.ts#L182-L191). Before drawing any text, the canvas translates to the text center, applies `ctx.scale(-1, 1)`, renders the text, and restores context.
+
+### 2. Rotation-Invariant Gesture Recognition
+- **Issue**: Standard gesture recognition checks compare y-coordinates (e.g. `tip.y < pip.y`), which fail whenever the hand is tilted, rotated sideways, or upside-down (such as differentiating a thumbs up from a thumbs down).
+- **Solution**: Refactored [`gesture_recognizer.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/gesture_recognizer.py) to use **joint-angle kinematics**. Calculated bone segment angles at the PIP and DIP joints using the cosine dot product, making finger flexion rotation-invariant. For thumb direction, computed the projection of the thumb vector onto the perpendicular hand coordinate axis.
+
+### 3. MediaPipe Memory Contiguity (`TypeError`)
+- **Issue**: Decoding BGR frames and flipping color channels via numpy slicing (`frame[:, :, ::-1]`) produced non-contiguous memory arrays, causing MediaPipe's underlying C++ bindings to throw a runtime error.
+- **Solution**: Swapped array slicing with `cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)`, ensuring a contiguous memory layout for `mp.Image`.
+
+### 4. Synchronized Session Video Recording
+- **Issue**: Canvas `captureStream()` on the overlay canvas only recorded transparent skeleton lines on a black background, while recording the `<video>` element omitted all detection overlays.
+- **Solution**: Engineered [`useVideoRecorder.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/hooks/useVideoRecorder.ts) with an offscreen composite renderer. During recording, each frame renders the mirrored webcam feed followed by synchronized skeleton meshes, bounding boxes, Hand IDs, and gesture pills, directly piping the composite stream into a browser `MediaRecorder`.
+
+### 5. Persistent Hand IDs with Occlusion Recovery
+- **Issue**: MediaPipe's `IMAGE` mode has no state memory across frames. If a user quickly moved their hand or had momentary motion blur, hand IDs would flicker or reset.
+- **Solution**: Developed a tracker with an 8-frame grace period (~0.5s). When a detection drops out, the track remains active in memory. When the hand reappears nearby, the tracker seamlessly rebinds the existing ID.
+
+---
 
 ## 📁 Project Structure
 
 ```
+Hand-Detection-And-Tracking-System/
 ├── backend/
-│   ├── main.py              # FastAPI app with WebSocket endpoint
-│   ├── hand_detector.py     # MediaPipe HandLandmarker wrapper
-│   ├── download_model.py    # Model download script
-│   ├── requirements.txt     # Python dependencies
-│   └── models/              # MediaPipe model files (auto-downloaded)
+│   ├── main.py                  # FastAPI server & WebSocket (/ws/detect)
+│   ├── hand_detector.py         # MediaPipe Task Vision API wrapper
+│   ├── hand_tracker.py          # Persistent multi-hand tracker & ID manager
+│   ├── gesture_recognizer.py    # 8-gesture rotation-invariant recognizer
+│   ├── test_hand_tracker.py     # Unit test suite for hand tracking
+│   ├── download_model.py        # Model download utility
+│   ├── requirements.txt         # Backend Python dependencies
+│   └── models/                  # HandLandmarker .task model storage
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx          # Main app — state management, detection loop
+│   │   ├── App.tsx              # Root React component & pipeline coordinator
+│   │   ├── App.css              # Dark-mode styling, grid layout & animations
 │   │   ├── components/
-│   │   │   ├── WebcamFeed.tsx    # Video + canvas overlay
-│   │   │   ├── ControlPanel.tsx  # Start/Stop, toggles, FPS
-│   │   │   └── StatusBar.tsx     # Detection status info
+│   │   │   ├── WebcamFeed.tsx   # Video display & canvas overlay renderer
+│   │   │   ├── ControlPanel.tsx # Control triggers, FPS & recorder controls
+│   │   │   └── StatusBar.tsx    # Live tracking info & gesture summary bar
 │   │   ├── hooks/
-│   │   │   ├── useWebSocket.ts   # WebSocket connection + reconnect
-│   │   │   └── useWebcam.ts      # getUserMedia management
+│   │   │   ├── useWebcam.ts     # Camera lifecycle & captureFrame helper
+│   │   │   ├── useWebSocket.ts  # Auto-reconnecting WebSocket client
+│   │   │   └── useVideoRecorder.ts # Composite video recorder (.webm/.mp4)
 │   │   ├── utils/
-│   │   │   └── drawLandmarks.ts  # Canvas drawing utilities
+│   │   │   └── drawLandmarks.ts # Canvas skeleton & bounding box drawing
 │   │   └── types/
-│   │       └── hand.ts           # TypeScript interfaces
-│   ├── package.json
-│   └── vite.config.ts
-├── .gitignore
-└── README.md
+│   │       └── hand.ts          # TypeScript interfaces & types
+│   ├── package.json             # Frontend dependencies & scripts
+│   ├── tsconfig.json            # TypeScript configuration
+│   └── vite.config.ts           # Vite bundler configuration
+├── assignment.pdf               # Dheera AI assessment brief
+├── .gitignore                   # Git ignore patterns
+└── README.md                    # Comprehensive documentation
 ```
