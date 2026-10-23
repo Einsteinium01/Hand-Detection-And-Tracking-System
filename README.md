@@ -4,26 +4,6 @@ A real-time hand detection, tracking, and gesture recognition system that proces
 
 ![Tech Stack](https://img.shields.io/badge/MediaPipe-Tasks_Vision_API-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue) ![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-orange) ![License](https://img.shields.io/badge/Status-Complete-brightgreen)
 
----
-
-## 📋 Table of Contents
-- [Features](#-features)
-  - [Core Requirements (MVP)](#core-requirements-mvp)
-  - [Bonus Features](#bonus-features)
-- [Architecture](#-architecture)
-- [How to Run the Application (Setup Instructions)](#-how-to-run-the-application-setup-instructions)
-  - [Prerequisites](#prerequisites)
-  - [1. Clone Repository](#1-clone-repository)
-  - [2. Backend Setup](#2-backend-setup)
-  - [3. Frontend Setup](#3-frontend-setup)
-  - [4. Running Automated Tests](#4-running-automated-tests)
-- [Dependencies & Requirements](#-dependencies--requirements)
-- [Which AI Tools Were Used & How](#-which-ai-tools-were-used--how)
-- [Challenges Faced & Solutions](#-challenges-faced--solutions)
-- [Project Structure](#-project-structure)
-
----
-
 ## ✨ Features
 
 ### Core Requirements (MVP)
@@ -40,58 +20,17 @@ A real-time hand detection, tracking, and gesture recognition system that proces
   - 👎 **Thumbs Down**
   - ✌️ **Peace**
   - 🖐️ **Open Palm**
-  - ✊ **Fist**
   - ☝️ **Pointing Up**
   - 🤟 **Rock**
   - 👌 **OK**
 - ✅ **Hand Tracking with Persistent IDs**: Assigns and maintains unique IDs across frames (`Hand #1`, `Hand #2`) using predictive centroid tracking, velocity smoothing, and cost-matrix matching.
-- ✅ **Occlusion & Dropout Tolerance**: Handles brief dropouts (up to 8 frames / ~0.5s) without losing or swapping hand IDs.
 - ✅ **Multi-Hand Support**: Simultaneously tracks and classifies gestures independently for multiple hands.
-- ✅ **Session Video Recording & Download**: Built-in recorder that captures the synchronized composite video (mirrored webcam feed + skeleton landmarks + bounding boxes + Hand IDs + gesture pills) and exports it as `.webm` / `.mp4`.
+- ✅ **Session Video Recording & Download**: Built-in recorder that captures the synchronized composite video (mirrored webcam feed + skeleton landmarks + bounding boxes + Hand IDs + gesture pills) and exports it as `.webm`.
 - ✅ **Visualization Toggles**: Instant runtime switches to toggle the skeleton mesh and bounding boxes independently.
 
 ---
 
-## 🏗️ Architecture
-
-```
-┌────────────────────────────────────────────────────────┐
-│                   Browser (React 19)                   │
-│                                                        │
-│   Webcam Feed ──▶ Canvas Frame Capture (~15 FPS)       │
-│                            │ (Base64 JPEG)             │
-│                            ▼                           │
-│                     WebSocket Client                   │
-└────────────────────────────┬───────────────────────────┘
-                             │ ws://localhost:8000/ws/detect
-┌────────────────────────────▼───────────────────────────┐
-│                   Server (FastAPI)                     │
-│                                                        │
-│   Base64 Decoder ──▶ MediaPipe Tasks Vision API        │
-│                            │ (21 Landmarks + BBox)     │
-│                            ▼                           │
-│                  HandTracker (Persistent IDs)          │
-│                            ▼                           │
-│               Gesture Recognizer (8 Gestures)          │
-│                            │                           │
-│                            ▼                           │
-│             JSON Response (Landmarks + ID + Gesture)   │
-└────────────────────────────┬───────────────────────────┘
-                             │
-┌────────────────────────────▼───────────────────────────┐
-│               Browser Overlay Renderer                 │
-│                                                        │
-│  Canvas 2D Context:                                    │
-│  - Mirrored skeleton connections & landmark nodes      │
-│  - Un-mirrored bounding boxes, Hand #IDs & confidence  │
-│  - Gesture badge pills & live status updates           │
-│  - Composite MediaRecorder (Webcam + Overlays)         │
-└────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🚀 How to Run the Application (Setup Instructions)
+## 🚀 How to Run the Application
 
 ### Prerequisites
 - **Python**: 3.10 or newer (tested on Python 3.12)
