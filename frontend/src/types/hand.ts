@@ -12,6 +12,7 @@ export interface BoundingBox {
 }
 
 export interface HandDetection {
+  id?: number;
   landmarks: Landmark[];
   handedness: 'Left' | 'Right';
   confidence: number;

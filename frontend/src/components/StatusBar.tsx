@@ -13,15 +13,21 @@ export function StatusBar({ detectionResult, isConnected, isRunning }: StatusBar
 
   const handednessInfo = hands.length > 0
     ? hands
-        .map((h) => `${h.handedness} (${Math.round(h.confidence * 100)}%)`)
+        .map((h) => {
+          const idPrefix = h.id != null ? `Hand #${h.id}: ` : '';
+          return `${idPrefix}${h.handedness} (${Math.round(h.confidence * 100)}%)`;
+        })
         .join(', ')
     : 'No hands detected';
 
   const gestureInfo = hands.length > 0
     ? hands
-        .map((h) => h.gesture)
-        .filter((g) => g && g !== 'Unknown')
-        .join(', ') || '—'
+        .map((h) => {
+          const idPrefix = h.id != null ? `Hand #${h.id}: ` : '';
+          const g = h.gesture && h.gesture !== 'Unknown' ? h.gesture : 'None';
+          return `${idPrefix}${g}`;
+        })
+        .join(', ')
     : '—';
 
   let connectionText: string;

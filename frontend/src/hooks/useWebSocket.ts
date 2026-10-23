@@ -8,6 +8,7 @@ const MAX_DELAY_MS = 10000;
 
 interface UseWebSocketReturn {
   sendFrame: (base64: string) => void;
+  resetTracking: () => void;
   lastResult: WebSocketMessage | null;
   isConnected: boolean;
   error: string | null;
@@ -113,5 +114,11 @@ export function useWebSocket(): UseWebSocketReturn {
     }
   }, []);
 
-  return { sendFrame, lastResult, isConnected, error };
+  const resetTracking = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: 'reset' }));
+    }
+  }, []);
+
+  return { sendFrame, resetTracking, lastResult, isConnected, error };
 }

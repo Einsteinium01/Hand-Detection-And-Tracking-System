@@ -16,10 +16,10 @@ Real-time hand detection and tracking system that processes webcam video and dis
 - ✅ Responsive dark-themed UI
 - ✅ Real-time FPS and processing time display
 
-### Bonus (Optional)
-- 🔲 Gesture recognition (thumbs up, peace sign, etc.)
-- 🔲 Hand tracking with unique IDs across frames
-- 🔲 Visualization toggle (skeleton / bounding boxes)
+### Bonus Features
+- ✅ **Gesture Recognition**: 8 gestures (👍 Thumbs Up, 👎 Thumbs Down, ✌ Peace, 🖐 Open Palm, ✊ Fist, ☝ Pointing Up, 🤟 Rock, 👌 OK) with rotation invariance
+- ✅ **Hand Tracking with Persistent IDs**: Assigns consistent IDs across frames (e.g. `Hand #1`, `Hand #2`) with predictive centroid tracking and occlusion handling
+- ✅ **Visualization Toggles**: Real-time switches for skeleton landmarks and bounding boxes
 - 🔲 Recording capability
 - 🔲 Heatmap visualization
 

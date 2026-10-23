@@ -17,6 +17,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from hand_detector import HandDetector
+from hand_tracker import HandTracker
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -131,6 +132,7 @@ async def websocket_detect(ws: WebSocket) -> None:
     client_label = f"{client.host}:{client.port}" if client else "unknown"
     logger.info("WebSocket connected: %s", client_label)
 
+    tracker = HandTracker()
     frame_count = 0
     fps_start = time.monotonic()
 
@@ -143,6 +145,10 @@ async def websocket_detect(ws: WebSocket) -> None:
                 message = json.loads(raw)
             except json.JSONDecodeError:
                 await ws.send_json({"type": "error", "message": "Invalid JSON"})
+                continue
+
+            if message.get("action") == "reset":
+                tracker.reset()
                 continue
 
             b64_frame = message.get("frame")
@@ -169,6 +175,7 @@ async def websocket_detect(ws: WebSocket) -> None:
 
             t0 = time.perf_counter()
             result = detector.detect(frame)
+            tracker.update(result["hands"])
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
             # --- FPS tracking ---

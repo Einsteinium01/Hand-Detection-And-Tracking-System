@@ -11,7 +11,7 @@ const SEND_INTERVAL_MS = 66; // ~15 fps to backend
 const FPS_WINDOW_SIZE = 30; // number of timestamps to average over
 
 function App() {
-  const { sendFrame, lastResult, isConnected } = useWebSocket();
+  const { sendFrame, resetTracking, lastResult, isConnected } = useWebSocket();
   const { videoRef, isWebcamReady, error: webcamError, startWebcam, stopWebcam, captureFrame } = useWebcam();
 
   const [config, setConfig] = useState<DetectionConfig>({
@@ -73,11 +73,12 @@ function App() {
   /** Start detection pipeline */
   const handleStart = useCallback(async () => {
     await startWebcam();
+    resetTracking();
     setConfig((prev) => ({ ...prev, isRunning: true }));
     fpsTimestampsRef.current = [];
     setFps(0);
     // Frame sending will be started once webcam is ready (see effect below)
-  }, [startWebcam]);
+  }, [startWebcam, resetTracking]);
 
   /** Stop detection pipeline */
   const handleStop = useCallback(() => {

@@ -107,6 +107,7 @@ class HandDetector:
                 {
                     "hands": [
                         {
+                            "id": int,  # persistent tracking ID across frames
                             "landmarks": [{"x": float, "y": float, "z": float}, ...],
                             "handedness": "Left" | "Right",
                             "confidence": float,

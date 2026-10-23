@@ -163,7 +163,8 @@ export function drawBoundingBox(
 
   // Draw label background
   const gesture = hand.gesture && hand.gesture !== 'Unknown' ? hand.gesture : '';
-  const label = `${hand.handedness} ${Math.round(hand.confidence * 100)}%`;
+  const idPrefix = hand.id != null ? `Hand #${hand.id} • ` : '';
+  const label = `${idPrefix}${hand.handedness} ${Math.round(hand.confidence * 100)}%`;
   ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
   const textMetrics = ctx.measureText(label);
   const textHeight = 20;
