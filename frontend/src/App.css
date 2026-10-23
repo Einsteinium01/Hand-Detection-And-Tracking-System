@@ -432,6 +432,175 @@
 }
 
 /* ========================================
+   Session Recording
+   ======================================== */
+
+.webcam-feed__rec-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(231, 76, 60, 0.6);
+  border-radius: 20px;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(231, 76, 60, 0.25);
+}
+
+.webcam-feed__rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e74c3c;
+  box-shadow: 0 0 8px #e74c3c;
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+.control-panel__record-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e74c3c;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.control-panel__record-dot--pulsing {
+  box-shadow: 0 0 8px #e74c3c;
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+.control-panel__btn--record {
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  color: #ff6b6b;
+}
+
+.control-panel__btn--record:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.25);
+  border-color: rgba(231, 76, 60, 0.8);
+  box-shadow: 0 2px 12px rgba(231, 76, 60, 0.25);
+  transform: translateY(-1px);
+}
+
+.control-panel__btn--record:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #8899aa;
+}
+
+.control-panel__recording-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.control-panel__recording-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  border-radius: 6px;
+  color: #ff6b6b;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.control-panel__btn--stop-record {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(192, 57, 43, 0.3);
+}
+
+.control-panel__btn--stop-record:hover {
+  background: linear-gradient(135deg, #d9534f 0%, #c0392b 100%);
+  box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
+  transform: translateY(-1px);
+}
+
+.control-panel__recording-ready {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(39, 174, 96, 0.08);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-panel__recording-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #8899aa;
+  font-variant-numeric: tabular-nums;
+}
+
+.control-panel__recording-ready-label {
+  color: #2ecc71;
+  font-weight: 600;
+}
+
+.control-panel__recording-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.control-panel__btn--download {
+  flex: 1;
+  background: linear-gradient(135deg, #27AE60 0%, #1e8449 100%);
+  color: #ffffff;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+.control-panel__btn--download:hover {
+  background: linear-gradient(135deg, #2ecc71 0%, #27AE60 100%);
+  box-shadow: 0 3px 12px rgba(39, 174, 96, 0.4);
+  transform: translateY(-1px);
+}
+
+.control-panel__btn-clear {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #8899aa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.control-panel__btn-clear:hover {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: rgba(231, 76, 60, 0.5);
+  color: #ff6b6b;
+}
+
+/* ========================================
    Responsive Design
    ======================================== */
 

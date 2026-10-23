@@ -1,4 +1,5 @@
 import type { DetectionConfig } from '../types/hand';
+import type { RecordingInfo } from '../hooks/useVideoRecorder';
 
 interface ControlPanelProps {
   onStart: () => void;
@@ -8,6 +9,27 @@ interface ControlPanelProps {
   fps: number;
   config: DetectionConfig;
   onConfigChange: (config: Partial<DetectionConfig>) => void;
+  // Recording props
+  isRecording: boolean;
+  recordingDuration: number;
+  recordedInfo: RecordingInfo | null;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+  onDownloadRecording: () => void;
+  onClearRecording: () => void;
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function ControlPanel({
@@ -18,6 +40,13 @@ export function ControlPanel({
   fps,
   config,
   onConfigChange,
+  isRecording,
+  recordingDuration,
+  recordedInfo,
+  onStartRecording,
+  onStopRecording,
+  onDownloadRecording,
+  onClearRecording,
 }: ControlPanelProps) {
   const connectionStatus = isConnected ? 'Connected' : 'Disconnected';
   const connectionClass = isConnected ? 'connected' : 'disconnected';
@@ -64,6 +93,62 @@ export function ControlPanel({
           <span className="control-panel__metric-label">Processing FPS</span>
           <span className="control-panel__metric-value">{fps.toFixed(1)}</span>
         </div>
+      </div>
+
+      {/* Session Recording */}
+      <div className="control-panel__section">
+        <h3 className="control-panel__section-title">Session Recording</h3>
+
+        {!isRecording ? (
+          <button
+            className="control-panel__btn control-panel__btn--record"
+            onClick={onStartRecording}
+            disabled={!isRunning}
+            title={!isRunning ? 'Start detection first to record' : 'Record session with overlays'}
+          >
+            <span className="control-panel__record-dot" />
+            Start Recording
+          </button>
+        ) : (
+          <div className="control-panel__recording-active">
+            <div className="control-panel__recording-badge">
+              <span className="control-panel__record-dot control-panel__record-dot--pulsing" />
+              <span>REC {formatDuration(recordingDuration)}</span>
+            </div>
+            <button
+              className="control-panel__btn control-panel__btn--stop-record"
+              onClick={onStopRecording}
+            >
+              ⏹ Stop Recording
+            </button>
+          </div>
+        )}
+
+        {recordedInfo && !isRecording && (
+          <div className="control-panel__recording-ready">
+            <div className="control-panel__recording-meta">
+              <span className="control-panel__recording-ready-label">✓ Ready:</span>
+              <span>{recordedInfo.duration.toFixed(1)}s</span>
+              <span>•</span>
+              <span>{formatFileSize(recordedInfo.sizeBytes)}</span>
+            </div>
+            <div className="control-panel__recording-actions">
+              <button
+                className="control-panel__btn control-panel__btn--download"
+                onClick={onDownloadRecording}
+              >
+                💾 Download Video
+              </button>
+              <button
+                className="control-panel__btn-clear"
+                onClick={onClearRecording}
+                title="Discard recording"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Visualization Toggles */}

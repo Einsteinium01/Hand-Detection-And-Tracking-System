@@ -13,6 +13,14 @@ interface WebcamFeedProps {
   webcamError: string | null;
   detectionResult: WebSocketMessage | null;
   config: DetectionConfig;
+  isRecording?: boolean;
+  recordingDuration?: number;
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 export function WebcamFeed({
@@ -21,6 +29,8 @@ export function WebcamFeed({
   webcamError,
   detectionResult,
   config,
+  isRecording = false,
+  recordingDuration = 0,
 }: WebcamFeedProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -134,6 +144,14 @@ export function WebcamFeed({
           ref={canvasRef}
           className="webcam-feed__canvas"
         />
+
+        {/* Live Recording Badge */}
+        {isRecording && (
+          <div className="webcam-feed__rec-badge">
+            <span className="webcam-feed__rec-dot" />
+            <span>REC {formatDuration(recordingDuration)}</span>
+          </div>
+        )}
 
         {/* Placeholder when webcam is not active */}
         {!isWebcamReady && !webcamError && (

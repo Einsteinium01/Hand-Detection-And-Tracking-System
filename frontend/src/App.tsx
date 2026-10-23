@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useWebcam } from './hooks/useWebcam';
+import { useVideoRecorder } from './hooks/useVideoRecorder';
 import { WebcamFeed } from './components/WebcamFeed';
 import { ControlPanel } from './components/ControlPanel';
 import { StatusBar } from './components/StatusBar';
@@ -23,6 +24,20 @@ function App() {
 
   const [latestResult, setLatestResult] = useState<WebSocketMessage | null>(null);
   const [fps, setFps] = useState(0);
+
+  const {
+    isRecording,
+    recordingDuration,
+    recordedInfo,
+    startRecording,
+    stopRecording,
+    downloadRecording,
+    clearRecording,
+  } = useVideoRecorder({
+    videoRef,
+    detectionResult: latestResult,
+    config,
+  });
 
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fpsTimestampsRef = useRef<number[]>([]);
@@ -136,6 +151,8 @@ function App() {
               webcamError={webcamError}
               detectionResult={latestResult}
               config={config}
+              isRecording={isRecording}
+              recordingDuration={recordingDuration}
             />
             <StatusBar
               detectionResult={latestResult}
@@ -153,6 +170,13 @@ function App() {
               fps={fps}
               config={config}
               onConfigChange={handleConfigChange}
+              isRecording={isRecording}
+              recordingDuration={recordingDuration}
+              recordedInfo={recordedInfo}
+              onStartRecording={startRecording}
+              onStopRecording={stopRecording}
+              onDownloadRecording={downloadRecording}
+              onClearRecording={clearRecording}
             />
           </aside>
         </div>
