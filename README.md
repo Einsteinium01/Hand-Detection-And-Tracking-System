@@ -154,7 +154,3 @@ This project was built with the help of **Google Antigravity (AGY)** — an AI c
 ├── .gitignore
 └── README.md
 ```
-
-## 📄 License
-
-This project was created as part of an internship assessment for Dheera AI.
