@@ -1,8 +1,9 @@
 """Rotation-invariant gesture recognition from MediaPipe hand landmarks.
 
-Uses distance-based finger extension checks instead of positional (x/y)
-comparisons so gestures are detected correctly regardless of hand
-orientation or rotation.
+Uses dual distance-based finger extension checks (tip-to-MCP AND
+tip-to-wrist) so gestures are detected accurately regardless of hand
+orientation.  Only the 8 gestures listed below are supported; anything
+else returns "Unknown".
 
 MediaPipe Hand Landmark Indices:
     0:  WRIST
@@ -34,7 +35,7 @@ def _palm_size(landmarks: list[dict]) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Finger extension detection (rotation-invariant)
+# Finger extension detection (rotation-invariant, dual-check)
 # ---------------------------------------------------------------------------
 
 # For each finger: (MCP index, PIP index, DIP index, TIP index)
@@ -47,150 +48,142 @@ _FINGER_JOINTS = {
 
 
 def _is_finger_extended(landmarks: list[dict], finger: str) -> bool:
-    """A finger is extended if its tip is further from its MCP than its PIP is.
+    """Dual-check finger extension (rotation-invariant).
 
-    This is rotation-invariant because it compares relative distances
-    rather than absolute y-positions.
+    A finger is considered extended only when BOTH conditions hold:
+      1. Tip is further from MCP than PIP is from MCP
+      2. Tip is further from wrist than PIP is from wrist
+
+    Requiring both checks eliminates false positives from curled
+    fingers whose tips swing past the MCP on the other side.
     """
     mcp_i, pip_i, _dip_i, tip_i = _FINGER_JOINTS[finger]
+    wrist = landmarks[0]
     mcp = landmarks[mcp_i]
     pip = landmarks[pip_i]
     tip = landmarks[tip_i]
 
-    tip_to_mcp = _dist(tip, mcp)
-    pip_to_mcp = _dist(pip, mcp)
+    # Check 1: tip further from MCP than PIP is
+    check_mcp = _dist(tip, mcp) > _dist(pip, mcp)
 
-    # Tip must be meaningfully further out than PIP (not just barely)
-    return tip_to_mcp > pip_to_mcp * 1.1
+    # Check 2: tip further from wrist than PIP is
+    check_wrist = _dist(tip, wrist) > _dist(pip, wrist)
+
+    return check_mcp and check_wrist
 
 
 def _is_thumb_extended(landmarks: list[dict]) -> bool:
-    """Thumb is extended if its tip is far from the palm center.
+    """Thumb is extended if tip–CMC distance is large relative to palm size.
 
-    We compare distance(thumb_tip → palm_center) vs
-    distance(thumb_ip → palm_center).  When the thumb is tucked in
-    (fist), the tip sits close to the palm; when extended, it moves away.
+    When the thumb is tucked (fist), the tip wraps close to the CMC,
+    giving a short straight-line distance.  When extended, the tip
+    moves far from the CMC.
     """
+    thumb_cmc = landmarks[1]
     thumb_tip = landmarks[4]
-    thumb_ip = landmarks[3]
+    palm = _palm_size(landmarks)
 
-    # Palm center ≈ average of wrist, index MCP, pinky MCP
-    pcx = (landmarks[0]["x"] + landmarks[5]["x"] + landmarks[17]["x"]) / 3
-    pcy = (landmarks[0]["y"] + landmarks[5]["y"] + landmarks[17]["y"]) / 3
-    palm = {"x": pcx, "y": pcy}
+    if palm < 0.01:
+        return False
 
-    tip_to_palm = _dist(thumb_tip, palm)
-    ip_to_palm = _dist(thumb_ip, palm)
-
-    return tip_to_palm > ip_to_palm * 1.2
+    cmc_to_tip = _dist(thumb_cmc, thumb_tip)
+    return cmc_to_tip > palm * 0.55
 
 
-def _get_finger_states(landmarks: list[dict]) -> dict[str, bool]:
-    """Return which fingers are extended (rotation-invariant)."""
-    return {
-        "thumb":  _is_thumb_extended(landmarks),
-        "index":  _is_finger_extended(landmarks, "index"),
-        "middle": _is_finger_extended(landmarks, "middle"),
-        "ring":   _is_finger_extended(landmarks, "ring"),
-        "pinky":  _is_finger_extended(landmarks, "pinky"),
-    }
+def _get_finger_states(landmarks: list[dict]) -> tuple[bool, bool, bool, bool, bool]:
+    """Return (thumb, index, middle, ring, pinky) extension states."""
+    return (
+        _is_thumb_extended(landmarks),
+        _is_finger_extended(landmarks, "index"),
+        _is_finger_extended(landmarks, "middle"),
+        _is_finger_extended(landmarks, "ring"),
+        _is_finger_extended(landmarks, "pinky"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Thumb direction (up vs down)
+# ---------------------------------------------------------------------------
+
+def _thumb_direction(landmarks: list[dict]) -> str:
+    """Determine if thumb points 'up' or 'down' relative to the hand.
+
+    Uses the dot product of the thumb vector (CMC → tip) against the
+    hand's own up-axis (wrist → middle MCP).  Positive dot = same
+    direction as fingers = up.
+    """
+    wrist = landmarks[0]
+    mid_mcp = landmarks[9]
+
+    # Hand 'up' vector: wrist → middle MCP
+    hx = mid_mcp["x"] - wrist["x"]
+    hy = mid_mcp["y"] - wrist["y"]
+
+    # Thumb vector: CMC → tip
+    thumb_cmc = landmarks[1]
+    thumb_tip = landmarks[4]
+    tx = thumb_tip["x"] - thumb_cmc["x"]
+    ty = thumb_tip["y"] - thumb_cmc["y"]
+
+    dot = hx * tx + hy * ty
+    return "up" if dot > 0 else "down"
 
 
 # ---------------------------------------------------------------------------
 # Gesture classification
 # ---------------------------------------------------------------------------
 
-def _thumb_direction(landmarks: list[dict]) -> str:
-    """Determine if the thumb points 'up' or 'down' relative to the hand.
-
-    We compare the thumb-tip position to the thumb CMC (base) along the
-    axis defined by the wrist → middle-finger MCP (the hand's natural
-    'up' direction).  This works regardless of absolute orientation.
-    """
-    wrist = landmarks[0]
-    mid_mcp = landmarks[9]
-
-    # Hand 'up' vector: wrist → middle MCP
-    hand_up_x = mid_mcp["x"] - wrist["x"]
-    hand_up_y = mid_mcp["y"] - wrist["y"]
-
-    # Thumb vector: thumb CMC → thumb tip
-    thumb_base = landmarks[2]
-    thumb_tip = landmarks[4]
-    thumb_dx = thumb_tip["x"] - thumb_base["x"]
-    thumb_dy = thumb_tip["y"] - thumb_base["y"]
-
-    # Dot product tells us if thumb points in the same direction as fingers
-    dot = hand_up_x * thumb_dx + hand_up_y * thumb_dy
-    return "up" if dot > 0 else "down"
-
-
 def recognise_gesture(landmarks: list[dict], handedness: str) -> str:
     """Classify the hand gesture from 21 normalised landmarks.
 
-    All checks are rotation-invariant (distance-based), so gestures
-    are detected correctly regardless of hand orientation.
-
-    Supported gestures:
-        Thumbs Up, Thumbs Down, Peace, Open Palm, Fist,
-        Pointing Up, Rock, OK, Three, Four
+    Supported gestures (only these 8):
+        👍 Thumbs Up  |  👎 Thumbs Down  |  ✌️ Peace
+        🖐️ Open Palm  |  ✊ Fist         |  ☝️ Pointing Up
+        🤟 Rock       |  👌 OK
 
     Args:
         landmarks: List of 21 dicts with ``x``, ``y``, ``z`` keys.
-        handedness: ``"Left"`` or ``"Right"`` (used for display only).
+        handedness: ``"Left"`` or ``"Right"``.
 
     Returns:
-        A human-readable gesture name string.
+        A human-readable gesture name string, or ``"Unknown"``.
     """
     if len(landmarks) < 21:
         return "Unknown"
 
-    f = _get_finger_states(landmarks)
-    thumb, index, middle, ring, pinky = (
-        f["thumb"], f["index"], f["middle"], f["ring"], f["pinky"],
-    )
+    thumb, index, middle, ring, pinky = _get_finger_states(landmarks)
     extended_count = sum([thumb, index, middle, ring, pinky])
 
-    # ── OK sign: thumb and index tips very close, others extended ──
+    # ── OK sign: thumb tip and index tip very close, others extended ──
     thumb_index_dist = _dist(landmarks[4], landmarks[8])
     palm = _palm_size(landmarks)
-    if palm > 0 and thumb_index_dist < palm * 0.25 and middle and ring:
-        return "OK 👌"
+    if palm > 0.01 and thumb_index_dist < palm * 0.2:
+        # Thumb and index forming a circle, at least middle+ring extended
+        if middle and ring:
+            return "OK 👌"
 
     # ── Fist: no fingers extended ──
     if extended_count == 0:
         return "Fist ✊"
 
-    # ── Thumbs Up / Down: only thumb extended ──
+    # ── Thumbs Up / Down: ONLY thumb extended ──
     if thumb and not index and not middle and not ring and not pinky:
-        direction = _thumb_direction(landmarks)
-        if direction == "up":
-            return "Thumbs Up 👍"
-        else:
-            return "Thumbs Down 👎"
+        return "Thumbs Up 👍" if _thumb_direction(landmarks) == "up" else "Thumbs Down 👎"
 
-    # ── Pointing: only index extended ──
+    # ── Pointing Up: ONLY index extended ──
     if not thumb and index and not middle and not ring and not pinky:
         return "Pointing ☝️"
 
-    # ── Peace / Victory: index + middle extended, others closed ──
-    if index and middle and not ring and not pinky and not thumb:
+    # ── Peace: ONLY index + middle extended ──
+    if not thumb and index and middle and not ring and not pinky:
         return "Peace ✌️"
 
-    # ── Three: index + middle + ring (or thumb + index + middle) ──
-    if extended_count == 3 and index and middle:
-        return "Three 🤟"
-
-    # ── Four: all except thumb ──
-    if not thumb and index and middle and ring and pinky:
-        return "Four 🖖"
-
-    # ── Rock / I Love You: thumb + index + pinky extended ──
+    # ── Rock: thumb + index + pinky extended, middle + ring closed ──
     if thumb and index and not middle and not ring and pinky:
         return "Rock 🤟"
 
-    # ── Open Palm: all five fingers extended ──
-    if extended_count >= 4 and index and middle and ring:
+    # ── Open Palm: ALL five fingers extended ──
+    if thumb and index and middle and ring and pinky:
         return "Open Palm 🖐️"
 
     return "Unknown"
