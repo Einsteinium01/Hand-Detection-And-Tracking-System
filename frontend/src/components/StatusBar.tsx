@@ -17,6 +17,13 @@ export function StatusBar({ detectionResult, isConnected, isRunning }: StatusBar
         .join(', ')
     : 'No hands detected';
 
+  const gestureInfo = hands.length > 0
+    ? hands
+        .map((h) => h.gesture)
+        .filter((g) => g && g !== 'Unknown')
+        .join(', ') || '—'
+    : '—';
+
   let connectionText: string;
   if (!isRunning) {
     connectionText = 'Idle';
@@ -41,6 +48,11 @@ export function StatusBar({ detectionResult, isConnected, isRunning }: StatusBar
       <div className="status-bar__item status-bar__item--wide">
         <span className="status-bar__label">Detection</span>
         <span className="status-bar__value">{handednessInfo}</span>
+      </div>
+      <div className="status-bar__divider" />
+      <div className="status-bar__item">
+        <span className="status-bar__label">Gesture</span>
+        <span className="status-bar__value">{gestureInfo}</span>
       </div>
       <div className="status-bar__divider" />
       <div className="status-bar__item">

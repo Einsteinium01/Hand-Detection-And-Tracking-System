@@ -16,6 +16,7 @@ export interface HandDetection {
   handedness: 'Left' | 'Right';
   confidence: number;
   bbox: BoundingBox;
+  gesture: string;
 }
 
 export interface DetectionResult {

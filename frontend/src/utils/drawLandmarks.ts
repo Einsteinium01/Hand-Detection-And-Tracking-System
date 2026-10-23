@@ -162,6 +162,7 @@ export function drawBoundingBox(
   ctx.setLineDash([]);
 
   // Draw label background
+  const gesture = hand.gesture && hand.gesture !== 'Unknown' ? hand.gesture : '';
   const label = `${hand.handedness} ${Math.round(hand.confidence * 100)}%`;
   ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
   const textMetrics = ctx.measureText(label);
@@ -187,6 +188,41 @@ export function drawBoundingBox(
   ctx.textBaseline = 'middle';
   ctx.fillText(label, labelX + padding, labelY + labelHeight / 2);
   ctx.restore();
+
+  // Draw gesture label below the bounding box if a gesture is detected
+  if (gesture) {
+    ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+    const gestureMetrics = ctx.measureText(gesture);
+    const gesturePad = 8;
+    const gestureWidth = gestureMetrics.width + gesturePad * 2;
+    const gestureHeight = 26;
+    const gestureX = x + w / 2 - gestureWidth / 2;
+    const gestureY = y + h + 6;
+
+    // Gesture pill background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.beginPath();
+    ctx.roundRect(gestureX, gestureY, gestureWidth, gestureHeight, 13);
+    ctx.fill();
+
+    ctx.strokeStyle = colors.primary;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.roundRect(gestureX, gestureY, gestureWidth, gestureHeight, 13);
+    ctx.stroke();
+
+    // Gesture text (un-mirror)
+    ctx.save();
+    const gestureCenterX = gestureX + gestureWidth / 2;
+    ctx.translate(gestureCenterX, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-gestureCenterX, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(gesture, gestureX + gesturePad, gestureY + gestureHeight / 2);
+    ctx.restore();
+  }
 
   ctx.restore();
 }

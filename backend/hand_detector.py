@@ -10,6 +10,8 @@ import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
+from gesture_recognizer import recognise_gesture
+
 logger = logging.getLogger(__name__)
 
 # Padding (as a fraction of bounding-box size) added around the tight
@@ -108,7 +110,8 @@ class HandDetector:
                             "landmarks": [{"x": float, "y": float, "z": float}, ...],
                             "handedness": "Left" | "Right",
                             "confidence": float,
-                            "bbox": {"x": float, "y": float, "width": float, "height": float}
+                            "bbox": {"x": float, "y": float, "width": float, "height": float},
+                            "gesture": str
                         },
                         ...
                     ],
@@ -138,12 +141,14 @@ class HandDetector:
                 {"x": lm.x, "y": lm.y, "z": lm.z} for lm in hand_landmarks
             ]
             bbox = self._bbox_from_landmarks(landmarks)
+            gesture = recognise_gesture(landmarks, top_handedness.category_name)
             hands.append(
                 {
                     "landmarks": landmarks,
                     "handedness": top_handedness.category_name,
                     "confidence": round(top_handedness.score, 4),
                     "bbox": bbox,
+                    "gesture": gesture,
                 }
             )
 
