@@ -2,7 +2,7 @@
 
 # 🖐️ Hand Detection & Tracking System
 
-A real-time hand detection, tracking, and gesture recognition system that processes live webcam video and displays interactive overlays in a modern web interface. Built for the **Dheera AI Internship Assessment**.
+A real-time hand detection, tracking, and gesture recognition system that processes live webcam video and displays interactive overlays in a modern web interface.
 
 <p align="center">
   <img src="https://img.shields.io/badge/MediaPipe-Tasks_Vision_API-blue" alt="MediaPipe" />
@@ -238,7 +238,6 @@ Hand-Detection-And-Tracking-System/
 │   ├── package.json             # Frontend dependencies & scripts
 │   ├── tsconfig.json            # TypeScript configuration
 │   └── vite.config.ts           # Vite bundler configuration
-├── assignment.pdf               # Dheera AI assessment brief
 ├── .gitignore                   # Git ignore patterns
 └── README.md                    # Comprehensive documentation
 ```
