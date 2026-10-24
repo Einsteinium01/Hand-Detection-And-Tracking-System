@@ -1,8 +1,21 @@
+<div align="center">
+
 # 🖐️ Hand Detection & Tracking System
 
 A real-time hand detection, tracking, and gesture recognition system that processes live webcam video and displays interactive overlays in a modern web interface. Built for the **Dheera AI Internship Assessment**.
 
-![Tech Stack](https://img.shields.io/badge/MediaPipe-Tasks_Vision_API-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue) ![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-orange) ![License](https://img.shields.io/badge/Status-Complete-brightgreen)
+<p align="center">
+  <img src="https://img.shields.io/badge/MediaPipe-Tasks_Vision_API-blue" alt="MediaPipe" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115-green" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/React-19-blue" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/WebSocket-Real--time-orange" alt="WebSocket" />
+  <img src="https://img.shields.io/badge/Status-Complete-brightgreen" alt="Status" />
+</p>
+
+</div>
+
+---
 
 ## ✨ Features
 
@@ -151,7 +164,7 @@ To ensure everything is working correctly, run the test suites:
 
 ---
 
-## 🤖 Which AI Tools Were Used & How
+## 🤖 AI Tools
 
 Throughout this project, **Google Antigravity (AGY)** was leveraged as the primary AI coding assistant:
 
@@ -171,25 +184,25 @@ Throughout this project, **Google Antigravity (AGY)** was leveraged as the prima
 
 ## 💡 Challenges Faced & Solutions
 
-### 1. Canvas Mirroring vs. Text Inversion
-- **Issue**: The webcam feed was mirrored (`transform: scaleX(-1)`) so the user feels like they are looking in a mirror. However, when drawing labels (handedness, confidence score, Hand ID, gesture text), the canvas mirror caused text to appear backwards.
-- **Solution**: Implemented localized inverse coordinate transformations in [`drawLandmarks.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/utils/drawLandmarks.ts#L182-L191). Before drawing any text, the canvas translates to the text center, applies `ctx.scale(-1, 1)`, renders the text, and restores context.
+### 1. Rotation-Invariant Gesture Recognition
+- **Challenge**: Naive coordinate checks (e.g. `tip.y < pip.y`) failed whenever the hand was tilted, held sideways, or inverted (such as confusing Thumbs Down with Thumbs Up, or failing to recognize a Peace sign at an angle).
+- **Solution**: Refactored gesture classification in [`gesture_recognizer.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/gesture_recognizer.py) to use **joint-angle kinematics**. Calculated bone segment angles at the PIP and DIP joints using cosine dot products for rotation-invariant finger flexion, and projected the thumb vector onto the perpendicular hand coordinate axis for gravity-aware orientation.
 
-### 2. Rotation-Invariant Gesture Recognition
-- **Issue**: Standard gesture recognition checks compare y-coordinates (e.g. `tip.y < pip.y`), which fail whenever the hand is tilted, rotated sideways, or upside-down (such as differentiating a thumbs up from a thumbs down).
-- **Solution**: Refactored [`gesture_recognizer.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/gesture_recognizer.py) to use **joint-angle kinematics**. Calculated bone segment angles at the PIP and DIP joints using the cosine dot product, making finger flexion rotation-invariant. For thumb direction, computed the projection of the thumb vector onto the perpendicular hand coordinate axis.
+### 2. Multi-Hand Tracking & ID Slot Reuse
+- **Challenge**: MediaPipe's `IMAGE` mode operates statelessly per frame. An unbounded incrementing counter caused IDs to climb to `Hand #20+` as hands left and re-entered, and brief motion blur caused IDs to flicker.
+- **Solution**: Built [`hand_tracker.py`](file:///C:/Projects/Hand-Detection-And-Tracking-System/backend/hand_tracker.py) with predictive centroid tracking, velocity smoothing, an 8-frame (~0.5s) occlusion grace period, and a **lowest available ID slot allocator**. Hands reliably maintain their IDs while in view and cleanly reuse freed slots (`#1`, `#2`, `#3`, `#4`) when returning.
 
-### 3. MediaPipe Memory Contiguity (`TypeError`)
-- **Issue**: Decoding BGR frames and flipping color channels via numpy slicing (`frame[:, :, ::-1]`) produced non-contiguous memory arrays, causing MediaPipe's underlying C++ bindings to throw a runtime error.
-- **Solution**: Swapped array slicing with `cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)`, ensuring a contiguous memory layout for `mp.Image`.
+### 3. Synchronized Composite Video Recording
+- **Challenge**: Capturing the raw `<video>` element omitted all landmark overlays, while capturing the overlay `<canvas>` only recorded floating skeleton lines against a transparent/black background.
+- **Solution**: Developed [`useVideoRecorder.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/hooks/useVideoRecorder.ts) with an offscreen composite renderer. Each frame draws the mirrored camera stream followed synchronously by skeleton meshes, bounding boxes, Hand IDs, and gesture pills, streaming directly into a browser `MediaRecorder` (`.webm`/`.mp4`).
 
-### 4. Synchronized Session Video Recording
-- **Issue**: Canvas `captureStream()` on the overlay canvas only recorded transparent skeleton lines on a black background, while recording the `<video>` element omitted all detection overlays.
-- **Solution**: Engineered [`useVideoRecorder.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/hooks/useVideoRecorder.ts) with an offscreen composite renderer. During recording, each frame renders the mirrored webcam feed followed by synchronized skeleton meshes, bounding boxes, Hand IDs, and gesture pills, directly piping the composite stream into a browser `MediaRecorder`.
+### 4. Layout Containment & Single-Display Responsiveness
+- **Challenge**: When 3–4 hands were detected, long telemetry strings with `white-space: nowrap` expanded the CSS Grid column beyond the viewport, shifting the control sidebar off-screen and creating unwanted scrollbars.
+- **Solution**: Clamped the grid layout with `minmax(0, 1fr)`, applied `min-width: 0` with text truncation on status cells, and locked the application to a `100vh` zero-scroll boundary with an auto-scaling 16:9 video viewport.
 
-### 5. Persistent Hand IDs with Occlusion Recovery
-- **Issue**: MediaPipe's `IMAGE` mode has no state memory across frames. If a user quickly moved their hand or had momentary motion blur, hand IDs would flicker or reset.
-- **Solution**: Developed a tracker with an 8-frame grace period (~0.5s). When a detection drops out, the track remains active in memory. When the hand reappears nearby, the tracker seamlessly rebinds the existing ID.
+### 5. Canvas Mirroring vs. Label Text Inversion
+- **Challenge**: Mirroring the webcam feed (`transform: scaleX(-1)`) provides a natural selfie-mirror experience, but applying the same mirror transform to the overlay canvas caused all text (handedness, confidence %, Hand IDs, and gesture labels) to render backwards.
+- **Solution**: Implemented localized counter-transformations in [`drawLandmarks.ts`](file:///C:/Projects/Hand-Detection-And-Tracking-System/frontend/src/utils/drawLandmarks.ts). Before rendering text, the canvas translates to the label center, applies `ctx.scale(-1, 1)`, draws the text, and restores context for left-to-right legibility.
 
 ---
 
