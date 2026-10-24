@@ -15,19 +15,20 @@ export function StatusBar({ detectionResult, isConnected, isRunning }: StatusBar
     ? hands
         .map((h, i) => {
           const trackId = h.id != null ? h.id : i + 1;
-          return `Hand #${trackId}: ${h.handedness} (${Math.round(h.confidence * 100)}%)`;
+          const hShort = h.handedness === 'Left' ? 'L' : 'R';
+          return `#${trackId} ${hShort} (${Math.round(h.confidence * 100)}%)`;
         })
-        .join('  •  ')
+        .join(' • ')
     : 'No active hands';
 
   const gestureInfo = hands.length > 0
     ? hands
         .map((h, i) => {
           const trackId = h.id != null ? h.id : i + 1;
-          const g = h.gesture && h.gesture !== 'Unknown' ? h.gesture : 'None';
-          return `Hand #${trackId}: ${g}`;
+          const g = h.gesture && h.gesture !== 'Unknown' ? h.gesture : '—';
+          return `#${trackId} ${g}`;
         })
-        .join('  •  ')
+        .join(' • ')
     : '—';
 
   let connectionStatusLabel: string;

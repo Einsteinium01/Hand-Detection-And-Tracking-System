@@ -57,13 +57,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <aside className="control-sidebar" aria-label="System control panel">
       {/* 1. Main Pipeline Action Card */}
       <section className="card card--primary-action">
-        <div className="card__header">
-          <h2 className="card__title">Pipeline Control</h2>
-          <span className="card__badge-subtle">
-            {isRunning ? 'RUNNING' : 'STANDBY'}
-          </span>
-        </div>
-
         <button
           type="button"
           className={`btn-action ${isRunning ? 'btn-action--stop' : 'btn-action--start'}`}
@@ -181,7 +174,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <span className="toggle-item__track">
               <span className="toggle-item__thumb" />
             </span>
-            <span className="toggle-item__label">21-Point Skeleton</span>
+            <span className="toggle-item__label">Skeleton</span>
           </label>
 
           <label className="toggle-item">

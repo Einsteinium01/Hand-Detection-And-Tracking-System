@@ -20,11 +20,6 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="app-header__icon" aria-hidden="true">🖐️</span>
         </div>
         <div className="app-header__title-group">
-          <div className="app-header__eyebrow">
-            <span>Dheera AI</span>
-            <span className="app-header__separator">•</span>
-            <span>Vision Systems</span>
-          </div>
           <h1 className="app-header__title">Hand Detection & Tracking</h1>
         </div>
       </div>
