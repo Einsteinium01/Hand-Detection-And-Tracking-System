@@ -15,27 +15,34 @@ const HAND_CONNECTIONS: [number, number][] = [
   [0, 13], [13, 14], [14, 15], [15, 16],
   // Pinky
   [0, 17], [17, 18], [18, 19], [19, 20],
-  // Palm connections
+  // Palm base connections
   [5, 9], [9, 13], [13, 17],
 ];
 
-/** Color scheme: left hand = blue, right hand = green */
-const COLORS = {
+/** Fingertip landmark indices */
+const FINGERTIP_INDICES = new Set([4, 8, 12, 16, 20]);
+
+/** Distinct high-contrast palette per handedness and tracking ID */
+const PALETTES = {
   Left: {
-    primary: '#4A90D9',
-    fill: 'rgba(74, 144, 217, 0.8)',
-    connection: 'rgba(74, 144, 217, 0.5)',
-    bbox: 'rgba(74, 144, 217, 0.7)',
-    bboxFill: 'rgba(74, 144, 217, 0.08)',
-    label: 'rgba(74, 144, 217, 0.9)',
+    primary: '#38bdf8',       // Sky blue
+    fill: '#0284c7',
+    glow: 'rgba(56, 189, 248, 0.35)',
+    connection: 'rgba(56, 189, 248, 0.65)',
+    connectionGlow: 'rgba(56, 189, 248, 0.2)',
+    bbox: 'rgba(56, 189, 248, 0.75)',
+    bboxFill: 'rgba(14, 165, 233, 0.06)',
+    labelBg: 'rgba(12, 18, 34, 0.92)',
   },
   Right: {
-    primary: '#27AE60',
-    fill: 'rgba(39, 174, 96, 0.8)',
-    connection: 'rgba(39, 174, 96, 0.5)',
-    bbox: 'rgba(39, 174, 96, 0.7)',
-    bboxFill: 'rgba(39, 174, 96, 0.08)',
-    label: 'rgba(39, 174, 96, 0.9)',
+    primary: '#34d399',      // Emerald green
+    fill: '#059669',
+    glow: 'rgba(52, 211, 153, 0.35)',
+    connection: 'rgba(52, 211, 153, 0.65)',
+    connectionGlow: 'rgba(52, 211, 153, 0.2)',
+    bbox: 'rgba(52, 211, 153, 0.75)',
+    bboxFill: 'rgba(16, 185, 129, 0.06)',
+    labelBg: 'rgba(10, 26, 20, 0.92)',
   },
 } as const;
 
@@ -45,7 +52,7 @@ interface DrawOptions {
 }
 
 /**
- * Draws the 21 hand landmarks as small filled circles.
+ * Draws the 21 hand landmarks with specialized styling for fingertips and joints.
  */
 export function drawHandLandmarks(
   ctx: CanvasRenderingContext2D,
@@ -54,31 +61,36 @@ export function drawHandLandmarks(
   canvasHeight: number,
   options: DrawOptions = {}
 ): void {
-  const { landmarkRadius = 4 } = options;
-  const colors = COLORS[hand.handedness];
+  const { landmarkRadius = 4.5 } = options;
+  const palette = PALETTES[hand.handedness] || PALETTES.Right;
 
   ctx.save();
 
-  for (const landmark of hand.landmarks) {
-    const x = landmark.x * canvasWidth;
-    const y = landmark.y * canvasHeight;
+  for (let idx = 0; idx < hand.landmarks.length; idx++) {
+    const lm = hand.landmarks[idx];
+    const x = lm.x * canvasWidth;
+    const y = lm.y * canvasHeight;
+    const isTip = FINGERTIP_INDICES.has(idx);
+    const isWrist = idx === 0;
 
-    // Outer glow
+    const radius = isTip ? landmarkRadius * 1.25 : isWrist ? landmarkRadius * 1.1 : landmarkRadius * 0.85;
+
+    // Outer glow ring
     ctx.beginPath();
-    ctx.arc(x, y, landmarkRadius + 1, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.arc(x, y, radius + 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = palette.glow;
     ctx.fill();
 
-    // Main circle
+    // Main node circle
     ctx.beginPath();
-    ctx.arc(x, y, landmarkRadius, 0, Math.PI * 2);
-    ctx.fillStyle = colors.fill;
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = isTip ? palette.primary : palette.fill;
     ctx.fill();
 
-    // Inner highlight
+    // Inner bright center dot for high-tech precision look
     ctx.beginPath();
-    ctx.arc(x, y, landmarkRadius * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.arc(x, y, Math.max(1.5, radius * 0.4), 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
   }
 
@@ -86,7 +98,7 @@ export function drawHandLandmarks(
 }
 
 /**
- * Draws connections between landmarks using the standard MediaPipe hand topology.
+ * Draws connections between landmarks with a soft anti-aliased glow.
  */
 export function drawHandConnections(
   ctx: CanvasRenderingContext2D,
@@ -96,38 +108,47 @@ export function drawHandConnections(
   options: DrawOptions = {}
 ): void {
   const { connectionWidth = 2.5 } = options;
-  const colors = COLORS[hand.handedness];
+  const palette = PALETTES[hand.handedness] || PALETTES.Right;
 
   if (hand.landmarks.length < 21) return;
 
   ctx.save();
-  ctx.strokeStyle = colors.connection;
-  ctx.lineWidth = connectionWidth;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
+  // Pass 1: Soft outer glow line
+  ctx.strokeStyle = palette.connectionGlow;
+  ctx.lineWidth = connectionWidth * 2.2;
+  ctx.beginPath();
   for (const [startIdx, endIdx] of HAND_CONNECTIONS) {
     const start = hand.landmarks[startIdx];
     const end = hand.landmarks[endIdx];
-
-    if (!start || !end) continue;
-
-    const x1 = start.x * canvasWidth;
-    const y1 = start.y * canvasHeight;
-    const x2 = end.x * canvasWidth;
-    const y2 = end.y * canvasHeight;
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    if (start && end) {
+      ctx.moveTo(start.x * canvasWidth, start.y * canvasHeight);
+      ctx.lineTo(end.x * canvasWidth, end.y * canvasHeight);
+    }
   }
+  ctx.stroke();
+
+  // Pass 2: Sharp core line
+  ctx.strokeStyle = palette.connection;
+  ctx.lineWidth = connectionWidth;
+  ctx.beginPath();
+  for (const [startIdx, endIdx] of HAND_CONNECTIONS) {
+    const start = hand.landmarks[startIdx];
+    const end = hand.landmarks[endIdx];
+    if (start && end) {
+      ctx.moveTo(start.x * canvasWidth, start.y * canvasHeight);
+      ctx.lineTo(end.x * canvasWidth, end.y * canvasHeight);
+    }
+  }
+  ctx.stroke();
 
   ctx.restore();
 }
 
 /**
- * Draws a bounding box around the detected hand with handedness label and confidence.
+ * Draws a precision bounding box with corner brackets, un-mirrored label badge, and gesture pill.
  */
 export function drawBoundingBox(
   ctx: CanvasRenderingContext2D,
@@ -135,93 +156,144 @@ export function drawBoundingBox(
   canvasWidth: number,
   canvasHeight: number
 ): void {
-  const colors = COLORS[hand.handedness];
+  const palette = PALETTES[hand.handedness] || PALETTES.Right;
   const { bbox } = hand;
 
   const x = bbox.x * canvasWidth;
   const y = bbox.y * canvasHeight;
   const w = bbox.width * canvasWidth;
   const h = bbox.height * canvasHeight;
-  const radius = 8;
+  const radius = 10;
+  const cornerLen = Math.min(18, Math.min(w, h) * 0.25);
 
   ctx.save();
 
-  // Draw filled background
-  ctx.fillStyle = colors.bboxFill;
+  // 1. Subtle bounding box fill
+  ctx.fillStyle = palette.bboxFill;
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, radius);
   ctx.fill();
 
-  // Draw dashed border
-  ctx.strokeStyle = colors.bbox;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
+  // 2. Subtle dashed perimeter
+  ctx.strokeStyle = palette.bbox;
+  ctx.lineWidth = 1.25;
+  ctx.setLineDash([5, 4]);
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, radius);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Draw label background
+  // 3. Precision corner brackets (CV reticle style)
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = palette.primary;
+
+  // Top-Left corner
+  ctx.beginPath();
+  ctx.moveTo(x, y + cornerLen);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.lineTo(x + cornerLen, y);
+  ctx.stroke();
+
+  // Top-Right corner
+  ctx.beginPath();
+  ctx.moveTo(x + w - cornerLen, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+  ctx.lineTo(x + w, y + cornerLen);
+  ctx.stroke();
+
+  // Bottom-Left corner
+  ctx.beginPath();
+  ctx.moveTo(x, y + h - cornerLen);
+  ctx.lineTo(x, y + h - radius);
+  ctx.arcTo(x, y + h, x + radius, y + h, radius);
+  ctx.lineTo(x + cornerLen, y + h);
+  ctx.stroke();
+
+  // Bottom-Right corner
+  ctx.beginPath();
+  ctx.moveTo(x + w - cornerLen, y + h);
+  ctx.lineTo(x + w - radius, y + h);
+  ctx.arcTo(x + w, y + h, x + w, y + h - radius, radius);
+  ctx.lineTo(x + w, y + h - cornerLen);
+  ctx.stroke();
+
+  // 4. Label Badge Header: Hand #ID, Handedness & Confidence
   const gesture = hand.gesture && hand.gesture !== 'Unknown' ? hand.gesture : '';
   const idPrefix = hand.id != null ? `Hand #${hand.id} • ` : '';
   const label = `${idPrefix}${hand.handedness} ${Math.round(hand.confidence * 100)}%`;
-  ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-  const textMetrics = ctx.measureText(label);
-  const textHeight = 20;
-  const padding = 6;
-  const labelWidth = textMetrics.width + padding * 2;
-  const labelHeight = textHeight + padding;
-  const labelX = x;
-  const labelY = y - labelHeight - 4;
 
-  ctx.fillStyle = colors.label;
+  ctx.font = '600 12px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const textMetrics = ctx.measureText(label);
+  const paddingH = 9;
+  const badgeHeight = 22;
+  const badgeWidth = textMetrics.width + paddingH * 2 + 10; // extra room for indicator dot
+  const badgeX = x;
+  const badgeY = Math.max(4, y - badgeHeight - 6);
+
+  // Badge background with dark glass styling
+  ctx.fillStyle = palette.labelBg;
   ctx.beginPath();
-  ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 4);
+  ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
   ctx.fill();
 
-  // Draw label text (un-mirror so text reads correctly on the flipped canvas)
+  ctx.strokeStyle = palette.primary;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
+  ctx.stroke();
+
+  // Draw un-mirrored label content
   ctx.save();
-  const textCenterX = labelX + labelWidth / 2;
-  ctx.translate(textCenterX, 0);
+  const badgeCenterX = badgeX + badgeWidth / 2;
+  ctx.translate(badgeCenterX, 0);
   ctx.scale(-1, 1);
-  ctx.translate(-textCenterX, 0);
+  ctx.translate(-badgeCenterX, 0);
+
+  // Status dot
+  ctx.fillStyle = palette.primary;
+  ctx.beginPath();
+  ctx.arc(badgeX + paddingH + 3, badgeY + badgeHeight / 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Text
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, labelX + padding, labelY + labelHeight / 2);
+  ctx.fillText(label, badgeX + paddingH + 11, badgeY + badgeHeight / 2 + 0.5);
   ctx.restore();
 
-  // Draw gesture label below the bounding box if a gesture is detected
+  // 5. Gesture Pill (floats below bounding box)
   if (gesture) {
-    ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+    ctx.font = '700 14px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     const gestureMetrics = ctx.measureText(gesture);
-    const gesturePad = 8;
-    const gestureWidth = gestureMetrics.width + gesturePad * 2;
-    const gestureHeight = 26;
-    const gestureX = x + w / 2 - gestureWidth / 2;
-    const gestureY = y + h + 6;
+    const gPadH = 12;
+    const gHeight = 28;
+    const gWidth = gestureMetrics.width + gPadH * 2;
+    const gX = x + w / 2 - gWidth / 2;
+    const gY = y + h + 8;
 
     // Gesture pill background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillStyle = 'rgba(10, 14, 26, 0.92)';
     ctx.beginPath();
-    ctx.roundRect(gestureX, gestureY, gestureWidth, gestureHeight, 13);
+    ctx.roundRect(gX, gY, gWidth, gHeight, 14);
     ctx.fill();
 
-    ctx.strokeStyle = colors.primary;
+    ctx.strokeStyle = palette.primary;
     ctx.lineWidth = 1.5;
-    ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.roundRect(gestureX, gestureY, gestureWidth, gestureHeight, 13);
+    ctx.roundRect(gX, gY, gWidth, gHeight, 14);
     ctx.stroke();
 
-    // Gesture text (un-mirror)
+    // Draw un-mirrored gesture text
     ctx.save();
-    const gestureCenterX = gestureX + gestureWidth / 2;
-    ctx.translate(gestureCenterX, 0);
+    const gCenterX = gX + gWidth / 2;
+    ctx.translate(gCenterX, 0);
     ctx.scale(-1, 1);
-    ctx.translate(-gestureCenterX, 0);
-    ctx.fillStyle = '#ffffff';
+    ctx.translate(-gCenterX, 0);
+    ctx.fillStyle = '#f8fafc';
     ctx.textBaseline = 'middle';
-    ctx.fillText(gesture, gestureX + gesturePad, gestureY + gestureHeight / 2);
+    ctx.fillText(gesture, gX + gPadH, gY + gHeight / 2 + 0.5);
     ctx.restore();
   }
 
@@ -229,7 +301,7 @@ export function drawBoundingBox(
 }
 
 /**
- * Clears the entire canvas.
+ * Clears the entire canvas viewport cleanly.
  */
 export function clearCanvas(
   ctx: CanvasRenderingContext2D,

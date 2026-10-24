@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useWebcam } from './hooks/useWebcam';
 import { useVideoRecorder } from './hooks/useVideoRecorder';
+import { Header } from './components/Header';
 import { WebcamFeed } from './components/WebcamFeed';
 import { ControlPanel } from './components/ControlPanel';
 import { StatusBar } from './components/StatusBar';
 import type { DetectionConfig, WebSocketMessage } from './types/hand';
 import './App.css';
 
-const SEND_INTERVAL_MS = 66; // ~15 fps to backend
-const FPS_WINDOW_SIZE = 30; // number of timestamps to average over
+const SEND_INTERVAL_MS = 66; // ~15 fps transmission to backend
+const FPS_WINDOW_SIZE = 30;  // Moving average frame window
 
-function App() {
+export default function App() {
   const { sendFrame, resetTracking, lastResult, isConnected } = useWebSocket();
   const { videoRef, isWebcamReady, error: webcamError, startWebcam, stopWebcam, captureFrame } = useWebcam();
 
@@ -23,7 +24,7 @@ function App() {
   });
 
   const [latestResult, setLatestResult] = useState<WebSocketMessage | null>(null);
-  const [fps, setFps] = useState(0);
+  const [fps, setFps] = useState<number>(0);
 
   const {
     isRecording,
@@ -42,7 +43,7 @@ function App() {
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fpsTimestampsRef = useRef<number[]>([]);
 
-  /** Calculate FPS from response timestamps */
+  /** Calculate smooth client-side FPS from server responses */
   useEffect(() => {
     if (lastResult) {
       setLatestResult(lastResult);
@@ -51,7 +52,6 @@ function App() {
       const timestamps = fpsTimestampsRef.current;
       timestamps.push(now);
 
-      // Keep only the last N timestamps
       while (timestamps.length > FPS_WINDOW_SIZE) {
         timestamps.shift();
       }
@@ -64,7 +64,7 @@ function App() {
     }
   }, [lastResult]);
 
-  /** Frame sending loop */
+  /** Frame sending loop to backend WebSocket */
   const startSendingFrames = useCallback(() => {
     if (sendIntervalRef.current) {
       clearInterval(sendIntervalRef.current);
@@ -92,7 +92,6 @@ function App() {
     setConfig((prev) => ({ ...prev, isRunning: true }));
     fpsTimestampsRef.current = [];
     setFps(0);
-    // Frame sending will be started once webcam is ready (see effect below)
   }, [startWebcam, resetTracking]);
 
   /** Stop detection pipeline */
@@ -105,7 +104,7 @@ function App() {
     fpsTimestampsRef.current = [];
   }, [stopSendingFrames, stopWebcam]);
 
-  /** Start sending frames once webcam is ready and running */
+  /** Start/stop frame transmission based on pipeline readiness */
   useEffect(() => {
     if (config.isRunning && isWebcamReady && isConnected) {
       startSendingFrames();
@@ -118,12 +117,33 @@ function App() {
     };
   }, [config.isRunning, isWebcamReady, isConnected, startSendingFrames, stopSendingFrames]);
 
+  /** Keyboard shortcut: Space toggles Start/Stop */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is interacting with an input or button
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (config.isRunning) {
+          handleStop();
+        } else {
+          handleStart();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [config.isRunning, handleStart, handleStop]);
+
   /** Config change handler */
   const handleConfigChange = useCallback((partial: Partial<DetectionConfig>) => {
     setConfig((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  /** Cleanup on unmount */
+  /** Cleanup timers on unmount */
   useEffect(() => {
     return () => {
       if (sendIntervalRef.current) {
@@ -132,19 +152,24 @@ function App() {
     };
   }, []);
 
-  return (
-    <div className="app">
-      <header className="app__header">
-        <h1 className="app__title">
-          <span className="app__title-icon">🖐️</span>
-          Hand Detection & Tracking
-        </h1>
-        <p className="app__subtitle">Real-time hand detection powered by computer vision</p>
-      </header>
+  // Derive detected hands array
+  const activeHands = useMemo(() => {
+    return latestResult?.data?.hands ?? [];
+  }, [latestResult]);
 
-      <main className="app__main">
-        <div className="app__content">
-          <div className="app__video-section">
+  return (
+    <div className="app-shell">
+      <Header
+        isConnected={isConnected}
+        isRunning={config.isRunning}
+        numHands={activeHands.length}
+        fps={fps}
+      />
+
+      <main className="app-main">
+        <div className="app-layout">
+          {/* Main Video Viewport & Telemetry Strip */}
+          <section className="viewport-column" aria-label="Live feed and metrics">
             <WebcamFeed
               videoRef={videoRef}
               isWebcamReady={isWebcamReady}
@@ -159,30 +184,28 @@ function App() {
               isConnected={isConnected}
               isRunning={config.isRunning}
             />
-          </div>
+          </section>
 
-          <aside className="app__sidebar">
-            <ControlPanel
-              onStart={handleStart}
-              onStop={handleStop}
-              isRunning={config.isRunning}
-              isConnected={isConnected}
-              fps={fps}
-              config={config}
-              onConfigChange={handleConfigChange}
-              isRecording={isRecording}
-              recordingDuration={recordingDuration}
-              recordedInfo={recordedInfo}
-              onStartRecording={startRecording}
-              onStopRecording={stopRecording}
-              onDownloadRecording={downloadRecording}
-              onClearRecording={clearRecording}
-            />
-          </aside>
+          {/* Interactive Control Sidebar */}
+          <ControlPanel
+            onStart={handleStart}
+            onStop={handleStop}
+            isRunning={config.isRunning}
+            isConnected={isConnected}
+            fps={fps}
+            config={config}
+            onConfigChange={handleConfigChange}
+            activeHands={activeHands}
+            isRecording={isRecording}
+            recordingDuration={recordingDuration}
+            recordedInfo={recordedInfo}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onDownloadRecording={downloadRecording}
+            onClearRecording={clearRecording}
+          />
         </div>
       </main>
     </div>
   );
 }
-
-export default App;

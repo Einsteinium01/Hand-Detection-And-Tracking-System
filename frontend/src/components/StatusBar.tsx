@@ -13,60 +13,87 @@ export function StatusBar({ detectionResult, isConnected, isRunning }: StatusBar
 
   const handednessInfo = hands.length > 0
     ? hands
-        .map((h) => {
-          const idPrefix = h.id != null ? `Hand #${h.id}: ` : '';
-          return `${idPrefix}${h.handedness} (${Math.round(h.confidence * 100)}%)`;
+        .map((h, i) => {
+          const trackId = h.id != null ? h.id : i + 1;
+          return `Hand #${trackId}: ${h.handedness} (${Math.round(h.confidence * 100)}%)`;
         })
-        .join(', ')
-    : 'No hands detected';
+        .join('  •  ')
+    : 'No active hands';
 
   const gestureInfo = hands.length > 0
     ? hands
-        .map((h) => {
-          const idPrefix = h.id != null ? `Hand #${h.id}: ` : '';
+        .map((h, i) => {
+          const trackId = h.id != null ? h.id : i + 1;
           const g = h.gesture && h.gesture !== 'Unknown' ? h.gesture : 'None';
-          return `${idPrefix}${g}`;
+          return `Hand #${trackId}: ${g}`;
         })
-        .join(', ')
+        .join('  •  ')
     : '—';
 
-  let connectionText: string;
+  let connectionStatusLabel: string;
+  let connectionVariant: 'ok' | 'idle' | 'warning';
+
   if (!isRunning) {
-    connectionText = 'Idle';
+    connectionStatusLabel = 'Pipeline Idle';
+    connectionVariant = 'idle';
   } else if (isConnected) {
-    connectionText = 'Connected & Processing';
+    connectionStatusLabel = 'Live Stream Processing';
+    connectionVariant = 'ok';
   } else {
-    connectionText = 'Reconnecting...';
+    connectionStatusLabel = 'Reconnecting to Server...';
+    connectionVariant = 'warning';
   }
 
   return (
-    <div className="status-bar">
-      <div className="status-bar__item">
-        <span className="status-bar__label">Hands</span>
-        <span className="status-bar__value">{numHands}</span>
-      </div>
-      <div className="status-bar__divider" />
-      <div className="status-bar__item">
-        <span className="status-bar__label">Processing</span>
-        <span className="status-bar__value">{processingTime.toFixed(1)} ms</span>
-      </div>
-      <div className="status-bar__divider" />
-      <div className="status-bar__item status-bar__item--wide">
-        <span className="status-bar__label">Detection</span>
-        <span className="status-bar__value">{handednessInfo}</span>
-      </div>
-      <div className="status-bar__divider" />
-      <div className="status-bar__item">
-        <span className="status-bar__label">Gesture</span>
-        <span className="status-bar__value">{gestureInfo}</span>
-      </div>
-      <div className="status-bar__divider" />
-      <div className="status-bar__item">
-        <span className="status-bar__label">Status</span>
-        <span className={`status-bar__value status-bar__value--${isConnected && isRunning ? 'ok' : 'idle'}`}>
-          {connectionText}
+    <footer className="status-strip" role="status" aria-live="polite">
+      {/* Hand Count Indicator */}
+      <div className="status-strip__cell">
+        <span className="status-strip__label">Tracks</span>
+        <span className="status-strip__value status-strip__value--mono">
+          {isRunning ? numHands : 0}
         </span>
       </div>
-    </div>
+
+      <div className="status-strip__divider" aria-hidden="true" />
+
+      {/* Latency Metric */}
+      <div className="status-strip__cell">
+        <span className="status-strip__label">Inference</span>
+        <span className="status-strip__value status-strip__value--mono">
+          {isRunning && processingTime > 0 ? `${processingTime.toFixed(1)} ms` : '—'}
+        </span>
+      </div>
+
+      <div className="status-strip__divider" aria-hidden="true" />
+
+      {/* Detection Breakdown */}
+      <div className="status-strip__cell status-strip__cell--wide">
+        <span className="status-strip__label">Telemetry</span>
+        <span className="status-strip__value status-strip__value--truncate" title={handednessInfo}>
+          {isRunning ? handednessInfo : 'Ready'}
+        </span>
+      </div>
+
+      <div className="status-strip__divider" aria-hidden="true" />
+
+      {/* Active Gesture Summary */}
+      <div className="status-strip__cell status-strip__cell--wide">
+        <span className="status-strip__label">Gesture</span>
+        <span className="status-strip__value status-strip__value--truncate" title={gestureInfo}>
+          {isRunning ? gestureInfo : '—'}
+        </span>
+      </div>
+
+      <div className="status-strip__divider" aria-hidden="true" />
+
+      {/* Pipeline Status Pill */}
+      <div className="status-strip__cell">
+        <span className="status-strip__label">Status</span>
+        <span className={`status-pill status-pill--${connectionVariant}`}>
+          <span className="status-pill__dot" aria-hidden="true" />
+          {connectionStatusLabel}
+        </span>
+      </div>
+    </footer>
   );
 }
