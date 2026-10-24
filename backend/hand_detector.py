@@ -28,7 +28,7 @@ _DEFAULT_MODEL_PATH = os.path.join(
 class DetectorConfig:
     """Configuration knobs exposed to callers."""
 
-    num_hands: int = 2
+    num_hands: int = 4
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
 

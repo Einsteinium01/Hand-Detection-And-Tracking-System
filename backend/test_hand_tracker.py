@@ -27,13 +27,13 @@ def create_hand(cx: float, cy: float, handedness: str = "Right", w: float = 0.2,
 
 def test_single_hand_persistent_id():
     tracker = HandTracker()
-    
+
     # Frame 1: Hand appears at (0.3, 0.4)
     h1 = create_hand(0.3, 0.4)
     res = tracker.update([h1])
     assert len(res) == 1
     assert res[0]["id"] == 1
-    
+
     # Frame 2: Hand moves slightly to (0.32, 0.41)
     h2 = create_hand(0.32, 0.41)
     res = tracker.update([h2])
@@ -67,9 +67,7 @@ def test_two_hands_different_ids():
 
     res2 = tracker.update([right_hand_moved, left_hand_moved])
     assert len(res2) == 2
-    # First item in array is right hand: must have id_right
     assert res2[0]["id"] == id_right
-    # Second item is left hand: must have id_left
     assert res2[1]["id"] == id_left
 
 
@@ -96,7 +94,7 @@ def test_grace_period_missing_frames():
     assert res[0]["id"] == 1
 
 
-def test_track_expiration():
+def test_track_expiration_and_slot_reuse():
     tracker = HandTracker(max_missing_frames=3)
 
     # Frame 1: Hand appears
@@ -111,10 +109,32 @@ def test_track_expiration():
     # Track should now be expired and cleared
     assert len(tracker.tracks) == 0
 
-    # Frame 6: Hand appears -> Gets a NEW ID (#2)
+    # Frame 6: Hand appears -> Reallocates lowest free ID (#1), NOT #2 or #20!
     h_new = create_hand(0.5, 0.5)
     res = tracker.update([h_new])
-    assert res[0]["id"] == 2
+    assert res[0]["id"] == 1
+
+
+def test_multi_hand_slot_allocation():
+    tracker = HandTracker(max_missing_frames=5)
+
+    # 3 hands visible simultaneously
+    h1 = create_hand(0.2, 0.2)
+    h2 = create_hand(0.8, 0.2)
+    h3 = create_hand(0.2, 0.8)
+    res = tracker.update([h1, h2, h3])
+    assert len(res) == 3
+    assert {h["id"] for h in res} == {1, 2, 3}
+
+    # Hand 2 leaves the camera, Hands 1 & 3 stay
+    for _ in range(6):  # expire track 2
+        res2 = tracker.update([h1, h3])
+    assert {h["id"] for h in res2} == {1, 3}
+
+    # A new hand enters: reuses freed slot #2
+    h_new = create_hand(0.5, 0.5)
+    res3 = tracker.update([h1, h3, h_new])
+    assert {h["id"] for h in res3} == {1, 2, 3}
 
 
 def test_reset():

@@ -2,7 +2,8 @@
 
 Matches detected hands across sequential frames using centroid distance,
 bounding box overlap, and handedness consistency. Maintains IDs through
-brief occlusions and tracking dropouts.
+brief occlusions and tracking dropouts. Reuses lowest available ID slots
+so active hands are always cleanly numbered (Hand #1, Hand #2, etc.).
 """
 
 from __future__ import annotations
@@ -61,6 +62,8 @@ class HandTracker:
     - Centroid + velocity predictive matching
     - Handedness consistency weighting
     - Grace period: retains lost tracks for up to `max_missing_frames`
+    - Lowest available ID allocation: Reuses free ID slots (1, 2, 3...)
+      when a hand departs, preventing unbounded counter bloat (e.g. Hand #20)
     - Per-session isolation (one tracker instance per WebSocket client)
     """
 
@@ -79,12 +82,18 @@ class HandTracker:
         self.max_missing_frames = max_missing_frames
         self.max_distance = max_distance
         self.tracks: list[Track] = []
-        self._next_id = 1
 
     def reset(self) -> None:
         """Clear all active tracks and reset the ID counter."""
         self.tracks.clear()
-        self._next_id = 1
+
+    def _allocate_id(self) -> int:
+        """Allocate the lowest positive integer ID (1, 2, 3...) not currently active."""
+        active_ids = {t.track_id for t in self.tracks}
+        candidate = 1
+        while candidate in active_ids:
+            candidate += 1
+        return candidate
 
     @staticmethod
     def _compute_centroid(hand: dict[str, Any]) -> tuple[float, float]:
@@ -182,11 +191,10 @@ class HandTracker:
             track.update(centroid, bbox, handedness)
             hands[d_idx]["id"] = track.track_id
 
-        # 2. Handle unmatched detections -> create new tracks
+        # 2. Handle unmatched detections -> allocate lowest available ID
         for d_idx in unmatched_dets:
             centroid, handedness, bbox = det_data[d_idx]
-            new_id = self._next_id
-            self._next_id += 1
+            new_id = self._allocate_id()
             new_track = Track(
                 track_id=new_id,
                 centroid=centroid,
